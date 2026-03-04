@@ -1,0 +1,110 @@
+import {
+  DocumentIcon,
+  PhotoIcon,
+  FilmIcon,
+  MusicalNoteIcon,
+  DocumentTextIcon,
+  TableCellsIcon,
+  PresentationChartBarIcon,
+  ArchiveBoxIcon,
+  ArrowDownTrayIcon,
+  PencilIcon,
+  TrashIcon,
+  ArrowRightIcon,
+} from '@heroicons/react/24/outline';
+import { EllipsisVerticalIcon } from '@heroicons/react/24/solid';
+import type { FileItem } from '@/types';
+import { formatFileSize, formatRelativeDate, getFileIcon, getFileColorClass } from '@/lib/utils';
+import { DropdownMenu } from '@/components/ui/DropdownMenu';
+
+interface FileRowProps {
+  file: FileItem;
+  selected?: boolean;
+  onSelect?: (id: string) => void;
+  onDownload: () => void;
+  onDelete: () => void;
+  onRename: () => void;
+  onMove?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+  onDoubleClick?: () => void;
+}
+
+const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
+  photo: PhotoIcon,
+  video: FilmIcon,
+  audio: MusicalNoteIcon,
+  pdf: DocumentTextIcon,
+  spreadsheet: TableCellsIcon,
+  document: DocumentTextIcon,
+  presentation: PresentationChartBarIcon,
+  archive: ArchiveBoxIcon,
+  text: DocumentTextIcon,
+  file: DocumentIcon,
+};
+
+export function FileRow({ file, selected, onSelect, onDownload, onDelete, onRename, onMove, onContextMenu, onDoubleClick }: FileRowProps) {
+  const iconType = getFileIcon(file.file_type);
+  const colorClass = getFileColorClass(file.file_type);
+  const Icon = iconMap[iconType] || DocumentIcon;
+
+  const dropdownItems = [
+    { label: 'Download', icon: <ArrowDownTrayIcon className="h-4 w-4" />, onClick: onDownload },
+    { label: 'Rename', icon: <PencilIcon className="h-4 w-4" />, onClick: onRename },
+    ...(onMove ? [{ label: 'Move to...', icon: <ArrowRightIcon className="h-4 w-4" />, onClick: onMove }] : []),
+    { label: 'Delete', icon: <TrashIcon className="h-4 w-4" />, onClick: onDelete, danger: true },
+  ];
+
+  return (
+    <tr
+      className={`group hover:bg-gray-50 transition-colors ${selected ? 'bg-blue-50' : ''}`}
+      onContextMenu={onContextMenu}
+      onDoubleClick={onDoubleClick}
+    >
+      {onSelect && (
+        <td className="px-4 py-3 w-10">
+          <input
+            type="checkbox"
+            checked={!!selected}
+            onChange={() => onSelect(file.id)}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+        </td>
+      )}
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-3">
+          {file.thumbnail_url ? (
+            <img
+              src={file.thumbnail_url}
+              alt={file.original_filename}
+              className="h-8 w-8 rounded object-cover border border-gray-200 flex-shrink-0"
+            />
+          ) : (
+            <Icon className={`h-5 w-5 flex-shrink-0 ${colorClass}`} />
+          )}
+          <span className="text-sm font-medium text-gray-900 truncate max-w-xs" title={file.original_filename}>
+            {file.original_filename}
+          </span>
+        </div>
+      </td>
+      <td className="px-4 py-3 text-sm text-gray-500">
+        {formatFileSize(file.file_size)}
+      </td>
+      <td className="px-4 py-3 text-sm text-gray-500">
+        {formatRelativeDate(file.updated_at)}
+      </td>
+      <td className="px-4 py-3 text-sm text-gray-500">
+        {file.owner.username}
+      </td>
+      <td className="px-4 py-3 text-right">
+        <DropdownMenu
+          trigger={
+            <button className="rounded-lg p-1 text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-gray-200 hover:text-gray-600 transition-all">
+              <EllipsisVerticalIcon className="h-4 w-4" />
+            </button>
+          }
+          items={dropdownItems}
+        />
+      </td>
+    </tr>
+  );
+}
