@@ -92,7 +92,7 @@ export function FileCard({
 
   return (
     <div
-      className={`group relative rounded-xl border bg-white p-4 hover:bg-gray-50 hover:shadow-sm transition-all ${selected ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-400' : 'border-gray-200'}`}
+      className={`group relative rounded-xl border bg-white p-4 hover:bg-gray-50 hover:shadow-sm transition-all dark:bg-white/[0.06] dark:hover:bg-white/[0.08] dark:hover:shadow-none ${selected ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-400 dark:border-cyan-400 dark:bg-cyan-400/10 dark:ring-cyan-400' : 'border-gray-200 dark:border-white/10'}`}
       onContextMenu={onContextMenu}
       onDoubleClick={onDoubleClick}
     >
@@ -111,7 +111,7 @@ export function FileCard({
       <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <DropdownMenu
           trigger={
-            <button className="rounded-lg p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition-colors">
+            <button className="rounded-lg p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition-colors dark:text-slate-500 dark:hover:bg-white/10 dark:hover:text-slate-300">
               <EllipsisVerticalIcon className="h-4 w-4" />
             </button>
           }
@@ -131,13 +131,13 @@ export function FileCard({
             <Icon className={`h-12 w-12 ${colorClass}`} />
           )}
         </div>
-        <p className="text-sm font-medium text-gray-900 truncate w-full" title={file.original_filename}>
+        <p className="text-sm font-medium text-gray-900 truncate w-full dark:text-white" title={file.original_filename}>
           {file.original_filename}
         </p>
-        <p className="mt-0.5 text-xs text-gray-500">
+        <p className="mt-0.5 text-xs text-gray-500 dark:text-slate-400">
           {formatFileSize(file.file_size)}
         </p>
-        <p className="mt-0.5 text-xs text-gray-400">
+        <p className="mt-0.5 text-xs text-gray-400 dark:text-slate-500">
           {formatRelativeDate(file.updated_at)}
         </p>
       </div>

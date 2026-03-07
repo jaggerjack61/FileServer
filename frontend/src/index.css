@@ -16,6 +16,12 @@ body {
   color: #111827;
 }
 
+.dark body,
+html.dark body {
+  background-color: #020617;
+  color: #e2e8f0;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -33,4 +39,126 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Dark mode: page headings */
+.dark h1, .dark h2, .dark h3 {
+  color: #f1f5f9;
+}
+
+/* Dark mode: table styles */
+.dark thead th {
+  color: #94a3b8;
+}
+
+.dark thead {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.dark table {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.dark tbody td {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Dark mode: common text colors in main content */
+.dark .text-gray-900 {
+  color: #f1f5f9;
+}
+
+.dark .text-gray-800 {
+  color: #e2e8f0;
+}
+
+.dark .text-gray-700 {
+  color: #cbd5e1;
+}
+
+.dark .text-gray-600 {
+  color: #94a3b8;
+}
+
+.dark .text-gray-500 {
+  color: #64748b;
+}
+
+.dark .text-gray-400 {
+  color: #475569;
+}
+
+.dark .bg-gray-50 {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.dark .bg-gray-100 {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.dark .border-gray-100 {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark .border-gray-200 {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .border-gray-300 {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Dark mode: hover states on context menus */
+.dark .hover\:bg-gray-50:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Dark mode: checkbox styling */
+.dark input[type="checkbox"] {
+  background-color: rgba(15, 23, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Dark mode: selection text */
+.dark .text-blue-600 {
+  color: #67e8f9;
+}
+
+.dark .text-blue-700 {
+  color: #67e8f9;
+}
+
+/* Dark mode: white backgrounds — opaque for surfaces, subtle for inline elements */
+.dark .bg-white {
+  background-color: #0f172a;
+}
+
+/* Dark mode: red hover in context menus */
+.dark .hover\:bg-red-50:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* Dark mode: focus ring offset */
+.dark .focus\:ring-offset-2:focus {
+  --tw-ring-offset-color: #0f172a;
 }

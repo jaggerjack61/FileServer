@@ -63,7 +63,7 @@ export function FileContextMenu({
       <div className="fixed inset-0 z-40" onClick={onClose} onContextMenu={(e) => { e.preventDefault(); onClose(); }} />
       <div
         ref={menuRef}
-        className="fixed z-50 w-48 rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5"
+        className="fixed z-50 w-48 rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5 dark:!bg-slate-800 dark:ring-white/10"
         style={{ top: y, left: x }}
       >
         <button

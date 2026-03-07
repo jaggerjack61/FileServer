@@ -15,7 +15,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
     <nav className="flex items-center gap-1 text-sm min-w-0 overflow-x-auto">
       <Link
         to="/files"
-        className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0"
+        className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0 dark:text-slate-400 dark:hover:text-slate-200"
       >
         <HomeIcon className="h-4 w-4" />
         <span>My Files</span>
@@ -27,13 +27,13 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
           <div key={item.folderId || index} className="flex items-center gap-1 min-w-0 flex-shrink-0">
             <ChevronRightIcon className="h-3 w-3 text-gray-400 flex-shrink-0" />
             {isLast ? (
-              <span className="font-medium text-gray-900 truncate max-w-[200px]">
+              <span className="font-medium text-gray-900 truncate max-w-[200px] dark:text-white">
                 {item.label}
               </span>
             ) : (
               <Link
                 to={`/files?folder=${item.folderId}`}
-                className="text-gray-500 hover:text-gray-700 transition-colors truncate max-w-[160px]"
+                className="text-gray-500 hover:text-gray-700 transition-colors truncate max-w-[160px] dark:text-slate-400 dark:hover:text-slate-200"
               >
                 {item.label}
               </Link>

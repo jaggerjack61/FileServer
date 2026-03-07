@@ -51,9 +51,9 @@ export function FileTable({
   const allSelected = selectedFiles && files.length > 0 && files.every(f => selectedFiles.has(f.id));
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/10 dark:bg-white/[0.04]">
+      <table className="min-w-full divide-y divide-gray-200 dark:divide-white/10">
+        <thead className="bg-gray-50 dark:bg-white/[0.04]">
           <tr>
             {onSelect && (
               <th className="px-4 py-3 w-10">
@@ -82,7 +82,7 @@ export function FileTable({
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-gray-100 dark:divide-white/5">
           {files.map((file) => (
             <FileRow
               key={file.id}

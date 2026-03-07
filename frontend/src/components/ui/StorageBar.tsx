@@ -18,14 +18,14 @@ export function StorageBar({ used, quota, className, showLabel = true }: Storage
 
   return (
     <div className={cn('w-full', className)}>
-      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden dark:bg-slate-800">
         <div
           className={cn('h-full rounded-full transition-all duration-500', getBarColor())}
           style={{ width: `${percentage}%` }}
         />
       </div>
       {showLabel && (
-        <p className="mt-1.5 text-xs text-gray-500">
+        <p className="mt-1.5 text-xs text-gray-500 dark:text-slate-400">
           {formatFileSize(used)} of {formatFileSize(quota)} used ({percentage}%)
         </p>
       )}

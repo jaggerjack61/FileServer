@@ -82,8 +82,8 @@ export function ApiKeysPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">API Keys</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">API Keys</h1>
+          <p className="text-sm text-gray-500 mt-1 dark:text-slate-400">
             Manage API keys for programmatic access
           </p>
         </div>
@@ -108,8 +108,8 @@ export function ApiKeysPage() {
       ) : (
         <Card padding={false}>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-white/10">
+              <thead className="bg-gray-50 dark:bg-white/[0.04]">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Name
@@ -134,13 +134,13 @@ export function ApiKeysPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                 {keys.map((key) => (
-                  <tr key={key.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                  <tr key={key.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.04]">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                       {key.name}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 font-mono">
+                    <td className="px-6 py-4 text-sm text-gray-500 font-mono dark:text-slate-400">
                       {key.prefix}...
                     </td>
                     <td className="px-6 py-4">
@@ -202,7 +202,7 @@ export function ApiKeysPage() {
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-slate-200">
               Permissions
             </label>
             <div className="space-y-2">
@@ -215,9 +215,9 @@ export function ApiKeysPage() {
                     type="checkbox"
                     checked={selectedPermissions.includes(perm.value)}
                     onChange={() => togglePermission(perm.value)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-white/20 dark:bg-slate-800"
                   />
-                  <span className="text-sm text-gray-700">{perm.label}</span>
+                  <span className="text-sm text-gray-700 dark:text-slate-300">{perm.label}</span>
                 </label>
               ))}
             </div>
@@ -255,14 +255,14 @@ export function ApiKeysPage() {
         title="API Key Created"
       >
         <div className="space-y-4">
-          <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3">
-            <p className="text-sm text-yellow-800 font-medium">
+          <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3 dark:bg-yellow-500/10 dark:border-yellow-400/20">
+            <p className="text-sm text-yellow-800 font-medium dark:text-yellow-300">
               Make sure to copy your API key now. You won&apos;t be able to see it again!
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <code className="flex-1 rounded-lg bg-gray-100 px-3 py-2 text-sm font-mono text-gray-900 break-all">
+            <code className="flex-1 rounded-lg bg-gray-100 px-3 py-2 text-sm font-mono text-gray-900 break-all dark:bg-slate-800 dark:text-slate-200">
               {createdKey}
             </code>
             <Button variant="secondary" size="sm" onClick={handleCopyKey}>
@@ -291,7 +291,7 @@ export function ApiKeysPage() {
         title="Revoke API Key"
         size="sm"
       >
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-gray-600 mb-4 dark:text-slate-400">
           Are you sure you want to revoke this API key? Any applications using this key
           will lose access immediately.
         </p>

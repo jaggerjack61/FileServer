@@ -172,14 +172,14 @@ export function FileToolbar({
           </span>
         )}
 
-        <div className="flex items-center rounded-lg border border-gray-200 bg-white p-0.5">
+        <div className="flex items-center rounded-lg border border-gray-200 bg-white p-0.5 dark:border-white/10 dark:bg-white/[0.06]">
           <button
             onClick={() => onViewModeChange('grid')}
             className={cn(
               'rounded-md p-1.5 transition-colors',
               viewMode === 'grid'
-                ? 'bg-gray-100 text-gray-900'
-                : 'text-gray-400 hover:text-gray-600'
+                ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white'
+                : 'text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300'
             )}
           >
             <Squares2X2Icon className="h-4 w-4" />
@@ -189,8 +189,8 @@ export function FileToolbar({
             className={cn(
               'rounded-md p-1.5 transition-colors',
               viewMode === 'table'
-                ? 'bg-gray-100 text-gray-900'
-                : 'text-gray-400 hover:text-gray-600'
+                ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white'
+                : 'text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300'
             )}
           >
             <ListBulletIcon className="h-4 w-4" />

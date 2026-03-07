@@ -90,7 +90,7 @@ export function FileRow({
 
   return (
     <tr
-      className={`group hover:bg-gray-50 transition-colors ${selected ? 'bg-blue-50' : ''}`}
+      className={`group hover:bg-gray-50 transition-colors dark:hover:bg-white/[0.04] ${selected ? 'bg-blue-50 dark:bg-cyan-400/10' : ''}`}
       onContextMenu={onContextMenu}
       onDoubleClick={onDoubleClick}
     >
@@ -115,24 +115,24 @@ export function FileRow({
           ) : (
             <Icon className={`h-5 w-5 flex-shrink-0 ${colorClass}`} />
           )}
-          <span className="text-sm font-medium text-gray-900 truncate max-w-xs" title={file.original_filename}>
+          <span className="text-sm font-medium text-gray-900 truncate max-w-xs dark:text-white" title={file.original_filename}>
             {file.original_filename}
           </span>
         </div>
       </td>
-      <td className="px-4 py-3 text-sm text-gray-500">
+      <td className="px-4 py-3 text-sm text-gray-500 dark:text-slate-400">
         {formatFileSize(file.file_size)}
       </td>
-      <td className="px-4 py-3 text-sm text-gray-500">
+      <td className="px-4 py-3 text-sm text-gray-500 dark:text-slate-400">
         {formatRelativeDate(file.updated_at)}
       </td>
-      <td className="px-4 py-3 text-sm text-gray-500">
+      <td className="px-4 py-3 text-sm text-gray-500 dark:text-slate-400">
         {file.owner.username}
       </td>
       <td className="px-4 py-3 text-right">
         <DropdownMenu
           trigger={
-            <button className="rounded-lg p-1 text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-gray-200 hover:text-gray-600 transition-all">
+            <button className="rounded-lg p-1 text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-gray-200 hover:text-gray-600 transition-all dark:text-slate-500 dark:hover:bg-white/10 dark:hover:text-slate-300">
               <EllipsisVerticalIcon className="h-4 w-4" />
             </button>
           }

@@ -32,7 +32,7 @@ export function DropdownMenu({ trigger, items, align = 'right' }: DropdownMenuPr
       >
         <Menu.Items
           className={cn(
-            'absolute z-50 mt-1 w-48 rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5 focus:outline-none',
+            'absolute z-50 mt-1 w-48 rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5 focus:outline-none dark:!bg-slate-800 dark:ring-white/10',
             align === 'right' ? 'right-0' : 'left-0'
           )}
         >
@@ -43,9 +43,9 @@ export function DropdownMenu({ trigger, items, align = 'right' }: DropdownMenuPr
                   onClick={item.onClick}
                   className={cn(
                     'flex w-full items-center gap-2 px-3 py-2 text-sm',
-                    active && !item.danger && 'bg-gray-50',
-                    active && item.danger && 'bg-red-50',
-                    item.danger ? 'text-red-600' : 'text-gray-700',
+                    active && !item.danger && 'bg-gray-50 dark:bg-white/10',
+                    active && item.danger && 'bg-red-50 dark:bg-red-500/10',
+                    item.danger ? 'text-red-600' : 'text-gray-700 dark:text-slate-300',
                     item.disabled && 'opacity-50 cursor-not-allowed'
                   )}
                 >

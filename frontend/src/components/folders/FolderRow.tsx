@@ -47,7 +47,7 @@ export function FolderRow({ folder, onClick, onDelete, onRename, onDropFiles, on
     <tr
       className={cn(
         'group transition-colors cursor-pointer',
-        isDragOver ? 'bg-blue-50 ring-1 ring-inset ring-blue-300' : 'hover:bg-gray-50'
+        isDragOver ? 'bg-blue-50 ring-1 ring-inset ring-blue-300 dark:bg-cyan-400/10 dark:ring-cyan-400/30' : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'
       )}
       onClick={onClick}
       onContextMenu={onContextMenu}
@@ -57,19 +57,19 @@ export function FolderRow({ folder, onClick, onDelete, onRename, onDropFiles, on
     >
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <FolderIcon className="h-5 w-5 text-blue-500 flex-shrink-0" />
-          <span className="text-sm font-medium text-gray-900">{folder.name}</span>
+          <FolderIcon className="h-5 w-5 text-blue-500 flex-shrink-0 dark:text-cyan-300" />
+          <span className="text-sm font-medium text-gray-900 dark:text-white">{folder.name}</span>
         </div>
       </td>
-      <td className="px-4 py-3 text-sm text-gray-500">—</td>
-      <td className="px-4 py-3 text-sm text-gray-500">
+      <td className="px-4 py-3 text-sm text-gray-500 dark:text-slate-500">—</td>
+      <td className="px-4 py-3 text-sm text-gray-500 dark:text-slate-400">
         {formatRelativeDate(folder.updated_at)}
       </td>
-      <td className="px-4 py-3 text-sm text-gray-500">{folder.owner.username}</td>
+      <td className="px-4 py-3 text-sm text-gray-500 dark:text-slate-400">{folder.owner.username}</td>
       <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
         <DropdownMenu
           trigger={
-            <button className="rounded-lg p-1 text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-gray-200 hover:text-gray-600 transition-all">
+            <button className="rounded-lg p-1 text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-gray-200 hover:text-gray-600 transition-all dark:text-slate-500 dark:hover:bg-white/10 dark:hover:text-slate-300">
               <EllipsisVerticalIcon className="h-4 w-4" />
             </button>
           }

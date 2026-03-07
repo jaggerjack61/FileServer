@@ -30,8 +30,8 @@ export function FileUploadZone({ onUpload, isUploading = false, className }: Fil
       className={cn(
         'flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors cursor-pointer',
         isDragActive
-          ? 'border-blue-500 bg-blue-50'
-          : 'border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50',
+          ? 'border-blue-500 bg-blue-50 dark:border-cyan-400 dark:bg-cyan-400/10'
+          : 'border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50 dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-white/20 dark:hover:bg-white/[0.06]',
         isUploading && 'opacity-50 cursor-not-allowed',
         className
       )}
@@ -49,10 +49,10 @@ export function FileUploadZone({ onUpload, isUploading = false, className }: Fil
         <p className="text-sm font-medium text-gray-500">Uploading...</p>
       ) : (
         <>
-          <p className="text-sm font-medium text-gray-700">
+          <p className="text-sm font-medium text-gray-700 dark:text-slate-300">
             Drag & drop files here
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-gray-500 dark:text-slate-500">
             or click to browse
           </p>
         </>

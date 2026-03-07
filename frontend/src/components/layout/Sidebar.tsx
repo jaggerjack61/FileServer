@@ -39,21 +39,21 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'flex flex-col border-r border-gray-200 bg-white transition-all duration-200',
+        'flex flex-col border-r border-gray-200 bg-white transition-all duration-200 dark:border-white/10 dark:bg-slate-900/80',
         collapsed ? 'w-16' : 'w-64'
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+      <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-white/10">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <ServerStackIcon className="h-7 w-7 text-blue-600" />
-            <span className="text-lg font-bold text-gray-900">FileServer</span>
+            <ServerStackIcon className="h-7 w-7 text-blue-600 dark:text-cyan-300" />
+            <span className="text-lg font-bold text-gray-900 dark:text-white">FileServer</span>
           </div>
         )}
         <button
           onClick={onToggle}
-          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-200"
         >
           {collapsed ? (
             <ChevronDoubleRightIcon className="h-5 w-5" />
@@ -73,8 +73,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-blue-50 text-blue-700 dark:bg-cyan-300/10 dark:text-cyan-300'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white'
               )
             }
           >
@@ -92,7 +92,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 </p>
               </div>
             )}
-            {collapsed && <div className="border-t border-gray-200 my-2" />}
+            {collapsed && <div className="border-t border-gray-200 my-2 dark:border-white/10" />}
             {adminItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -102,8 +102,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-blue-50 text-blue-700 dark:bg-cyan-300/10 dark:text-cyan-300'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white'
                   )
                 }
               >
@@ -117,17 +117,17 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Storage & Tenant Info */}
       {!collapsed && user?.tenant && (
-        <div className="border-t border-gray-200 p-4 space-y-3">
+        <div className="border-t border-gray-200 p-4 space-y-3 dark:border-white/10">
           <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-500">
               Tenant
             </p>
-            <p className="text-sm font-medium text-gray-900 truncate">
+            <p className="text-sm font-medium text-gray-900 truncate dark:text-white">
               {user.tenant.name}
             </p>
           </div>
           <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1 dark:text-slate-500">
               Storage
             </p>
             <StorageBar
