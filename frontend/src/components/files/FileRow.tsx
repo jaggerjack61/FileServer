@@ -1,4 +1,5 @@
 import {
+  ArchiveBoxArrowDownIcon,
   DocumentIcon,
   PhotoIcon,
   FilmIcon,
@@ -8,7 +9,9 @@ import {
   PresentationChartBarIcon,
   ArchiveBoxIcon,
   ArrowDownTrayIcon,
+  DocumentDuplicateIcon,
   PencilIcon,
+  ScissorsIcon,
   TrashIcon,
   ArrowRightIcon,
 } from '@heroicons/react/24/outline';
@@ -24,7 +27,11 @@ interface FileRowProps {
   onDownload: () => void;
   onDelete: () => void;
   onRename: () => void;
+  onCopy?: () => void;
+  onCut?: () => void;
   onMove?: () => void;
+  onCompress?: () => void;
+  onExtract?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
   onDoubleClick?: () => void;
 }
@@ -42,15 +49,33 @@ const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>
   file: DocumentIcon,
 };
 
-export function FileRow({ file, selected, onSelect, onDownload, onDelete, onRename, onMove, onContextMenu, onDoubleClick }: FileRowProps) {
+export function FileRow({
+  file,
+  selected,
+  onSelect,
+  onDownload,
+  onDelete,
+  onRename,
+  onCopy,
+  onCut,
+  onMove,
+  onCompress,
+  onExtract,
+  onContextMenu,
+  onDoubleClick,
+}: FileRowProps) {
   const iconType = getFileIcon(file.file_type);
   const colorClass = getFileColorClass(file.file_type);
   const Icon = iconMap[iconType] || DocumentIcon;
 
   const dropdownItems = [
     { label: 'Download', icon: <ArrowDownTrayIcon className="h-4 w-4" />, onClick: onDownload },
+    ...(onCopy ? [{ label: 'Copy', icon: <DocumentDuplicateIcon className="h-4 w-4" />, onClick: onCopy }] : []),
+    ...(onCut ? [{ label: 'Cut', icon: <ScissorsIcon className="h-4 w-4" />, onClick: onCut }] : []),
     { label: 'Rename', icon: <PencilIcon className="h-4 w-4" />, onClick: onRename },
     ...(onMove ? [{ label: 'Move to...', icon: <ArrowRightIcon className="h-4 w-4" />, onClick: onMove }] : []),
+    ...(onCompress ? [{ label: 'Compress', icon: <ArchiveBoxIcon className="h-4 w-4" />, onClick: onCompress }] : []),
+    ...(onExtract ? [{ label: 'Extract', icon: <ArchiveBoxArrowDownIcon className="h-4 w-4" />, onClick: onExtract }] : []),
     { label: 'Delete', icon: <TrashIcon className="h-4 w-4" />, onClick: onDelete, danger: true },
   ];
 

@@ -26,6 +26,17 @@ export function getFileIcon(fileType: string): string {
   return 'file';
 }
 
+export function isArchiveFile(fileType: string, filename?: string): boolean {
+  const normalizedType = (fileType || '').toLowerCase();
+  const normalizedName = (filename || '').toLowerCase();
+  return (
+    normalizedType.includes('zip') ||
+    normalizedType.includes('archive') ||
+    normalizedType.includes('compressed') ||
+    normalizedName.endsWith('.zip')
+  );
+}
+
 export function getFileColorClass(fileType: string): string {
   const icon = getFileIcon(fileType);
   const colors: Record<string, string> = {

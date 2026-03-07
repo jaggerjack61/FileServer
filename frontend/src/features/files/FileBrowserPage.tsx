@@ -1,6 +1,17 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useFiles, useUploadFile, useDeleteFile, useRenameFile, useMoveFile, useBulkDeleteFiles, useBulkMoveFiles } from '@/hooks/useFiles';
+import {
+  useFiles,
+  useUploadFile,
+  useDeleteFile,
+  useRenameFile,
+  useMoveFile,
+  useBulkDeleteFiles,
+  useBulkMoveFiles,
+  useBulkCopyFiles,
+  useCompressFiles,
+  useExtractFile,
+} from '@/hooks/useFiles';
 import { useFolders, useCreateFolder, useDeleteFolder, useUpdateFolder } from '@/hooks/useFolders';
 import { useFolder } from '@/hooks/useFolders';
 import { fileService } from '@/services/fileService';
@@ -20,10 +31,39 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
-import { cn } from '@/lib/utils';
+import { cn, isArchiveFile } from '@/lib/utils';
 import type { FileItem, Folder } from '@/types';
+import { AxiosError } from 'axios';
 
 type ViewMode = 'grid' | 'table';
+
+type ClipboardOperation = 'copy' | 'cut';
+
+interface FileClipboard {
+  operation: ClipboardOperation;
+  fileIds: string[];
+  sourceFolderId: string | null;
+}
+
+interface ActionFeedback {
+  tone: 'neutral' | 'success' | 'error';
+  message: string;
+}
+
+function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof AxiosError) {
+    if (typeof error.response?.data === 'string') {
+      return error.response.data;
+    }
+
+    const detail = (error.response?.data as { detail?: string } | undefined)?.detail;
+    if (typeof detail === 'string' && detail.trim()) {
+      return detail;
+    }
+  }
+
+  return fallback;
+}
 
 export function FileBrowserPage() {
   const [searchParams] = useSearchParams();
@@ -52,7 +92,10 @@ export function FileBrowserPage() {
     file?: FileItem;
     folder?: Folder;
   } | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [clipboard, setClipboard] = useState<FileClipboard | null>(null);
+  const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
   const [moveFile, setMoveFile] = useState<FileItem | null>(null);
   const [showBulkMove, setShowBulkMove] = useState(false);
   const [showBulkDelete, setShowBulkDelete] = useState(false);
@@ -72,9 +115,38 @@ export function FileBrowserPage() {
   const moveFileMutation = useMoveFile();
   const bulkDeleteMutation = useBulkDeleteFiles();
   const bulkMoveMutation = useBulkMoveFiles();
+  const bulkCopyMutation = useBulkCopyFiles();
+  const compressMutation = useCompressFiles();
+  const extractMutation = useExtractFile();
 
   const files = filesQuery.data?.results ?? [];
   const folders = foldersQuery.data?.results ?? [];
+  const currentFolderId = folderId ?? null;
+  const selectedFileItems = files.filter((file) => selectedFiles.has(file.id));
+  const selectedArchive =
+    selectedFileItems.length === 1 &&
+    isArchiveFile(selectedFileItems[0].file_type, selectedFileItems[0].original_filename)
+      ? selectedFileItems[0]
+      : null;
+  const clipboardLabel = clipboard
+    ? `${clipboard.operation === 'copy' ? 'Copying' : 'Moving'} ${clipboard.fileIds.length} file${clipboard.fileIds.length !== 1 ? 's' : ''}`
+    : null;
+  const canPaste = !!clipboard && (clipboard.operation === 'copy' || clipboard.sourceFolderId !== currentFolderId);
+
+  useEffect(() => {
+    if (!feedback) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => setFeedback(null), 4000);
+    return () => window.clearTimeout(timeoutId);
+  }, [feedback]);
+
+  useEffect(() => {
+    setSelectedFiles(new Set());
+    setSelectionMode(false);
+    setContextMenu(null);
+  }, [folderId, search]);
 
   // Build breadcrumbs from the folder detail API (ancestor chain)
   const breadcrumbs: { label: string; folderId?: string }[] = [];
@@ -91,6 +163,7 @@ export function FileBrowserPage() {
 
   // ---------- Selection helpers ----------
   const toggleFileSelection = useCallback((id: string) => {
+    setSelectionMode(true);
     setSelectedFiles(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -100,6 +173,7 @@ export function FileBrowserPage() {
   }, []);
 
   const toggleSelectAllFiles = useCallback(() => {
+    setSelectionMode(true);
     if (selectedFiles.size === files.length) {
       setSelectedFiles(new Set());
     } else {
@@ -110,6 +184,132 @@ export function FileBrowserPage() {
   const clearSelection = useCallback(() => {
     setSelectedFiles(new Set());
   }, []);
+
+  const exitSelectionMode = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedFiles(new Set());
+  }, []);
+
+  const queueClipboard = useCallback(
+    (operation: ClipboardOperation, fileItems: FileItem[]) => {
+      if (fileItems.length === 0) {
+        return;
+      }
+
+      setClipboard({
+        operation,
+        fileIds: fileItems.map((file) => file.id),
+        sourceFolderId: currentFolderId,
+      });
+      setFeedback({
+        tone: 'success',
+        message: `${operation === 'copy' ? 'Copied' : 'Cut'} ${fileItems.length} file${fileItems.length !== 1 ? 's' : ''}. Navigate to a folder and paste.`,
+      });
+      setSelectedFiles(new Set());
+      setSelectionMode(false);
+    },
+    [currentFolderId]
+  );
+
+  const handleCompressFiles = useCallback(
+    (fileItems: FileItem[]) => {
+      if (fileItems.length === 0) {
+        return;
+      }
+
+      compressMutation.mutate(
+        {
+          fileIds: fileItems.map((file) => file.id),
+          folderId: currentFolderId,
+        },
+        {
+          onSuccess: (response) => {
+            setFeedback({ tone: 'success', message: `Created archive ${response.archive.original_filename}.` });
+            setSelectedFiles(new Set());
+            setSelectionMode(false);
+          },
+          onError: (error) => {
+            setFeedback({
+              tone: 'error',
+              message: getApiErrorMessage(error, 'Unable to compress the selected files.'),
+            });
+          },
+        }
+      );
+    },
+    [compressMutation, currentFolderId]
+  );
+
+  const handleExtractArchive = useCallback(
+    (file: FileItem) => {
+      extractMutation.mutate(
+        { id: file.id, folderId: currentFolderId },
+        {
+          onSuccess: (response) => {
+            setFeedback({
+              tone: 'success',
+              message: `Extracted ${file.original_filename} into ${response.folder_name}.`,
+            });
+            setSelectedFiles(new Set());
+            setSelectionMode(false);
+          },
+          onError: (error) => {
+            setFeedback({
+              tone: 'error',
+              message: getApiErrorMessage(error, 'Unable to extract the selected archive.'),
+            });
+          },
+        }
+      );
+    },
+    [currentFolderId, extractMutation]
+  );
+
+  const handlePaste = useCallback(() => {
+    if (!clipboard || !canPaste) {
+      return;
+    }
+
+    if (clipboard.operation === 'cut') {
+      bulkMoveMutation.mutate(
+        { fileIds: clipboard.fileIds, folderId: currentFolderId },
+        {
+          onSuccess: () => {
+            setClipboard(null);
+            setFeedback({
+              tone: 'success',
+              message: `Moved ${clipboard.fileIds.length} file${clipboard.fileIds.length !== 1 ? 's' : ''}.`,
+            });
+          },
+          onError: (error) => {
+            setFeedback({
+              tone: 'error',
+              message: getApiErrorMessage(error, 'Unable to paste the cut files.'),
+            });
+          },
+        }
+      );
+      return;
+    }
+
+    bulkCopyMutation.mutate(
+      { fileIds: clipboard.fileIds, folderId: currentFolderId },
+      {
+        onSuccess: () => {
+          setFeedback({
+            tone: 'success',
+            message: `Copied ${clipboard.fileIds.length} file${clipboard.fileIds.length !== 1 ? 's' : ''} here.`,
+          });
+        },
+        onError: (error) => {
+          setFeedback({
+            tone: 'error',
+            message: getApiErrorMessage(error, 'Unable to paste the copied files.'),
+          });
+        },
+      }
+    );
+  }, [bulkCopyMutation, bulkMoveMutation, canPaste, clipboard, currentFolderId]);
 
   // ---------- Upload helpers ----------
   const uploadFilesToFolder = useCallback(
@@ -366,9 +566,24 @@ export function FileBrowserPage() {
         onViewModeChange={setViewMode}
         onUploadClick={() => setShowUpload(true)}
         onNewFolderClick={() => setShowCreateFolder(true)}
+        hasFiles={files.length > 0}
+        selectionMode={selectionMode}
         selectedCount={selectedFiles.size}
+        onEnterSelectionMode={() => setSelectionMode(true)}
+        onExitSelectionMode={exitSelectionMode}
+        onSelectAll={toggleSelectAllFiles}
+        onBulkCopy={() => queueClipboard('copy', selectedFileItems)}
+        onBulkCut={() => queueClipboard('cut', selectedFileItems)}
         onBulkDelete={() => setShowBulkDelete(true)}
         onBulkMove={() => setShowBulkMove(true)}
+        onBulkCompress={() => handleCompressFiles(selectedFileItems)}
+        onBulkExtract={selectedArchive ? () => handleExtractArchive(selectedArchive) : undefined}
+        canExtractSelected={!!selectedArchive}
+        onPaste={clipboard ? handlePaste : undefined}
+        canPaste={canPaste}
+        clipboardLabel={clipboardLabel}
+        statusMessage={feedback?.message}
+        statusTone={feedback?.tone}
         onClearSelection={clearSelection}
       />
 
@@ -455,6 +670,7 @@ export function FileBrowserPage() {
                 <FileGrid
                   files={files}
                   selectedFiles={selectedFiles}
+                  showSelection={selectionMode || selectedFiles.size > 0}
                   onSelect={toggleFileSelection}
                   onDownload={handleDownload}
                   onDelete={(f) => setDeleteFile(f)}
@@ -462,7 +678,15 @@ export function FileBrowserPage() {
                     setRenameFile(f);
                     setNewName(f.original_filename);
                   }}
+                  onCopy={(f) => queueClipboard('copy', [f])}
+                  onCut={(f) => queueClipboard('cut', [f])}
                   onMove={(f) => setMoveFile(f)}
+                  onCompress={(f) => handleCompressFiles([f])}
+                  onExtract={(f) => {
+                    if (isArchiveFile(f.file_type, f.original_filename)) {
+                      handleExtractArchive(f);
+                    }
+                  }}
                   onContextMenu={handleFileContextMenu}
                   onOpenPreview={openPreview}
                 />
@@ -478,7 +702,15 @@ export function FileBrowserPage() {
                     setRenameFile(f);
                     setNewName(f.original_filename);
                   }}
+                  onCopy={(f) => queueClipboard('copy', [f])}
+                  onCut={(f) => queueClipboard('cut', [f])}
                   onMove={(f) => setMoveFile(f)}
+                  onCompress={(f) => handleCompressFiles([f])}
+                  onExtract={(f) => {
+                    if (isArchiveFile(f.file_type, f.original_filename)) {
+                      handleExtractArchive(f);
+                    }
+                  }}
                   onContextMenu={handleFileContextMenu}
                   onOpenPreview={openPreview}
                 />
@@ -661,10 +893,19 @@ export function FileBrowserPage() {
           y={contextMenu.y}
           onPreview={() => openPreview(contextMenu.file!)}
           onDownload={() => handleDownload(contextMenu.file!)}
+          onCopy={() => queueClipboard('copy', [contextMenu.file!])}
+          onCut={() => queueClipboard('cut', [contextMenu.file!])}
           onRename={() => {
             setRenameFile(contextMenu.file!);
             setNewName(contextMenu.file!.original_filename);
           }}
+          onMove={() => setMoveFile(contextMenu.file!)}
+          onCompress={() => handleCompressFiles([contextMenu.file!])}
+          onExtract={
+            isArchiveFile(contextMenu.file.file_type, contextMenu.file.original_filename)
+              ? () => handleExtractArchive(contextMenu.file!)
+              : undefined
+          }
           onDelete={() => setDeleteFile(contextMenu.file!)}
           onClose={() => setContextMenu(null)}
         />

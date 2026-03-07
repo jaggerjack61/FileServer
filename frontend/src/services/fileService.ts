@@ -1,5 +1,10 @@
 import api from '@/lib/axios';
-import type { FileItem, PaginatedResponse } from '@/types';
+import type {
+  FileCompressResponse,
+  FileExtractResponse,
+  FileItem,
+  PaginatedResponse,
+} from '@/types';
 
 interface FileListParams {
   folder_id?: string | null;
@@ -79,6 +84,34 @@ export const fileService = {
   bulkMove: async (fileIds: string[], folderId: string | null): Promise<{ moved: number }> => {
     const { data } = await api.post<{ moved: number }>('/files/bulk-move/', {
       file_ids: fileIds,
+      folder_id: folderId,
+    });
+    return data;
+  },
+
+  bulkCopy: async (fileIds: string[], folderId: string | null): Promise<{ copied: number }> => {
+    const { data } = await api.post<{ copied: number }>('/files/bulk-copy/', {
+      file_ids: fileIds,
+      folder_id: folderId,
+    });
+    return data;
+  },
+
+  compress: async (
+    fileIds: string[],
+    folderId: string | null,
+    archiveName?: string
+  ): Promise<FileCompressResponse> => {
+    const { data } = await api.post<FileCompressResponse>('/files/compress/', {
+      file_ids: fileIds,
+      folder_id: folderId,
+      archive_name: archiveName,
+    });
+    return data;
+  },
+
+  extract: async (id: string, folderId: string | null): Promise<FileExtractResponse> => {
+    const { data } = await api.post<FileExtractResponse>(`/files/${id}/extract/`, {
       folder_id: folderId,
     });
     return data;

@@ -1,13 +1,14 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'brand';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
+  pill?: boolean;
   children: React.ReactNode;
 }
 
@@ -19,6 +20,8 @@ const variantClasses: Record<ButtonVariant, string> = {
   ghost: 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-gray-500',
   danger:
     'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm',
+  brand:
+    'border border-cyan-300/20 bg-cyan-300 text-slate-950 hover:bg-cyan-200 focus:ring-cyan-300 shadow-[0_20px_45px_rgba(34,211,238,0.2)]',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -31,6 +34,7 @@ export function Button({
   variant = 'primary',
   size = 'md',
   loading = false,
+  pill = false,
   disabled,
   children,
   className,
@@ -40,7 +44,8 @@ export function Button({
     <button
       disabled={disabled || loading}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center gap-2 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+        pill ? 'rounded-full' : 'rounded-lg',
         variantClasses[variant],
         sizeClasses[size],
         className

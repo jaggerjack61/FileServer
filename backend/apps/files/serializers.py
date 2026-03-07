@@ -64,3 +64,23 @@ class FileRenameSerializer(serializers.Serializer):
 
 class FileMoveSerializer(serializers.Serializer):
     folder_id = serializers.UUIDField(required=False, allow_null=True)
+
+
+class FileIdListSerializer(serializers.Serializer):
+    file_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        allow_empty=False,
+    )
+
+
+class FileBulkDestinationSerializer(FileIdListSerializer):
+    folder_id = serializers.UUIDField(required=False, allow_null=True)
+
+
+class FileCompressSerializer(FileBulkDestinationSerializer):
+    archive_name = serializers.CharField(required=False, allow_blank=True, max_length=255)
+
+
+class FileExtractSerializer(serializers.Serializer):
+    folder_id = serializers.UUIDField(required=False, allow_null=True)
+    folder_name = serializers.CharField(required=False, allow_blank=True, max_length=255)

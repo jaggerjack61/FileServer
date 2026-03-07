@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { Spinner } from '@/components/ui/Spinner';
 
 // Lazy-loaded pages
+const LandingPage = lazy(() => import('@/features/auth/LandingPage').then(m => ({ default: m.LandingPage })));
 const LoginPage = lazy(() => import('@/features/auth/LoginPage').then(m => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import('@/features/auth/RegisterPage').then(m => ({ default: m.RegisterPage })));
 const FileBrowserPage = lazy(() => import('@/features/files/FileBrowserPage').then(m => ({ default: m.FileBrowserPage })));
@@ -54,6 +55,10 @@ function GuestRoute({ children }: { children: ReactNode }) {
 
 export const router = createBrowserRouter([
   {
+    path: '/',
+    element: <SuspenseWrapper><LandingPage /></SuspenseWrapper>,
+  },
+  {
     path: '/login',
     element: (
       <GuestRoute>
@@ -77,7 +82,6 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <Navigate to="/files" replace /> },
       { path: 'files', element: <SuspenseWrapper><FileBrowserPage /></SuspenseWrapper> },
       { path: 'trash', element: <SuspenseWrapper><TrashPage /></SuspenseWrapper> },
       { path: 'dashboard', element: <SuspenseWrapper><DashboardPage /></SuspenseWrapper> },
@@ -123,5 +127,9 @@ export const router = createBrowserRouter([
         ),
       },
     ],
+  },
+  {
+    path: '*',
+    element: <Navigate to="/" replace />,
   },
 ]);

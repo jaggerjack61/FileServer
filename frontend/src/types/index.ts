@@ -32,6 +32,16 @@ export interface FileItem {
   download_url: string;
 }
 
+export interface FileCompressResponse {
+  archive: FileItem;
+}
+
+export interface FileExtractResponse {
+  extracted: number;
+  folder_id: string;
+  folder_name: string;
+}
+
 export interface BreadcrumbItem {
   id: string;
   name: string;

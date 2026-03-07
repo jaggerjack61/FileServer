@@ -65,6 +65,25 @@ class LocalStorageService:
         logger.warning("File not found for deletion: %s", storage_path)
         return False
 
+    def copy_file(self, source_storage_path: str, tenant_id: str, user_id: str, folder_path: str = "") -> str:
+        """Duplicate an existing file and return the new relative storage path."""
+        source_abs = self._resolve(source_storage_path)
+        if not source_abs.exists():
+            raise FileNotFoundError(source_storage_path)
+
+        ext = source_abs.suffix
+        unique_name = f"{uuid.uuid4().hex}{ext}"
+        rel_dir = os.path.join(str(tenant_id), str(user_id), folder_path)
+        abs_dir = self._resolve(rel_dir)
+        abs_dir.mkdir(parents=True, exist_ok=True)
+
+        destination_abs = abs_dir / unique_name
+        shutil.copy2(source_abs, destination_abs)
+
+        storage_path = os.path.join(rel_dir, unique_name)
+        logger.info("File copied: %s -> %s", source_storage_path, storage_path)
+        return storage_path
+
     def get_file(self, storage_path: str) -> Path | None:
         """Return the absolute Path if the file exists, else None."""
         abs_path = self._resolve(storage_path)
@@ -104,6 +123,15 @@ class S3StorageService:
         self.client.delete_object(Bucket=self.bucket, Key=storage_path)
         logger.info("S3 file deleted: %s", storage_path)
         return True
+
+    def copy_file(self, source_storage_path: str, tenant_id: str, user_id: str, folder_path: str = "") -> str:
+        ext = os.path.splitext(source_storage_path)[1]
+        unique_name = f"{uuid.uuid4().hex}{ext}"
+        key = f"{tenant_id}/{user_id}/{folder_path}/{unique_name}".replace("//", "/")
+        copy_source = {"Bucket": self.bucket, "Key": source_storage_path}
+        self.client.copy_object(Bucket=self.bucket, CopySource=copy_source, Key=key)
+        logger.info("S3 file copied: %s -> %s", source_storage_path, key)
+        return key
 
     def get_file(self, storage_path: str):
         """Return a presigned URL string."""

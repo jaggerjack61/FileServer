@@ -127,3 +127,51 @@ export function useBulkMoveFiles() {
     },
   });
 }
+
+export function useBulkCopyFiles() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ fileIds, folderId }: { fileIds: string[]; folderId: string | null }) =>
+      fileService.bulkCopy(fileIds, folderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+    },
+  });
+}
+
+export function useCompressFiles() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      fileIds,
+      folderId,
+      archiveName,
+    }: {
+      fileIds: string[];
+      folderId: string | null;
+      archiveName?: string;
+    }) => fileService.compress(fileIds, folderId, archiveName),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+    },
+  });
+}
+
+export function useExtractFile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, folderId }: { id: string; folderId: string | null }) =>
+      fileService.extract(id, folderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+    },
+  });
+}
