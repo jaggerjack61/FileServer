@@ -11,13 +11,15 @@ import {
   ArrowDownTrayIcon,
   ArrowRightIcon,
   DocumentDuplicateIcon,
+  EyeIcon,
+  InformationCircleIcon,
   PencilIcon,
   ScissorsIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';
 import { EllipsisVerticalIcon } from '@heroicons/react/24/solid';
 import type { FileItem } from '@/types';
-import { formatFileSize, formatRelativeDate, getFileIcon, getFileColorClass } from '@/lib/utils';
+import { formatFileSize, formatRelativeDate, getFileIcon, getFileColorClass, getFilePreviewKind } from '@/lib/utils';
 import { DropdownMenu } from '@/components/ui/DropdownMenu';
 
 interface FileCardProps {
@@ -33,6 +35,8 @@ interface FileCardProps {
   onMove?: () => void;
   onCompress?: () => void;
   onExtract?: () => void;
+  onPreview?: () => void;
+  onProperties?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
   onDoubleClick?: () => void;
 }
@@ -63,14 +67,19 @@ export function FileCard({
   onMove,
   onCompress,
   onExtract,
+  onPreview,
+  onProperties,
   onContextMenu,
   onDoubleClick,
 }: FileCardProps) {
   const iconType = getFileIcon(file.file_type);
   const colorClass = getFileColorClass(file.file_type);
   const Icon = iconMap[iconType] || DocumentIcon;
+  const canPreview = getFilePreviewKind(file.file_type, file.original_filename) !== 'none';
 
   const dropdownItems = [
+    { label: 'Preview', icon: <EyeIcon />, onClick: () => onPreview?.(), disabled: !canPreview || !onPreview },
+    { label: 'Properties', icon: <InformationCircleIcon />, onClick: () => onProperties?.(), disabled: !onProperties },
     { label: 'Download', icon: <ArrowDownTrayIcon />, onClick: onDownload },
     ...(onCopy ? [{ label: 'Copy', icon: <DocumentDuplicateIcon />, onClick: onCopy }] : []),
     ...(onCut ? [{ label: 'Cut', icon: <ScissorsIcon />, onClick: onCut }] : []),

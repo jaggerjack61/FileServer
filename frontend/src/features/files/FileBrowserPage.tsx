@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   useFiles,
@@ -20,6 +21,7 @@ import { FileGrid } from '@/components/files/FileGrid';
 import { FileTable } from '@/components/files/FileTable';
 import { FileUploadZone } from '@/components/files/FileUploadZone';
 import { FilePreview } from '@/components/files/FilePreview';
+import { FilePropertiesModal } from '@/components/files/FilePropertiesModal';
 import { FileContextMenu } from '@/components/files/FileContextMenu';
 import { MoveFileModal } from '@/components/files/MoveFileModal';
 import { FolderCard } from '@/components/folders/FolderCard';
@@ -31,8 +33,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
-import { cn, isArchiveFile } from '@/lib/utils';
-import type { FileItem, Folder } from '@/types';
+import { cn, getFilePreviewKind, getOfficeEditorKind, isArchiveFile, isEditableTextFile } from '@/lib/utils';
+import type { FileItem, Folder, OfficeContent } from '@/types';
 import { AxiosError } from 'axios';
 
 type ViewMode = 'grid' | 'table';
@@ -66,6 +68,7 @@ function getApiErrorMessage(error: unknown, fallback: string): string {
 }
 
 export function FileBrowserPage() {
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const folderId = searchParams.get('folder') || undefined;
@@ -77,8 +80,11 @@ export function FileBrowserPage() {
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewText, setPreviewText] = useState<string | null>(null);
+  const [previewOfficeContent, setPreviewOfficeContent] = useState<OfficeContent | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewSaving, setPreviewSaving] = useState(false);
+  const [propertiesFile, setPropertiesFile] = useState<FileItem | null>(null);
   const [renameFile, setRenameFile] = useState<FileItem | null>(null);
   const [renameFolder, setRenameFolder] = useState<Folder | null>(null);
   const [deleteFile, setDeleteFile] = useState<FileItem | null>(null);
@@ -402,23 +408,17 @@ export function FileBrowserPage() {
     setPreviewFile(null);
     setPreviewUrl(null);
     setPreviewText(null);
+    setPreviewOfficeContent(null);
     setPreviewLoading(false);
     setPreviewError(null);
+    setPreviewSaving(false);
   }, []);
 
   const openPreview = useCallback(async (file: FileItem) => {
-    const previewable =
-      file.file_type.startsWith('image/') ||
-      file.file_type.startsWith('video/') ||
-      file.file_type.startsWith('audio/') ||
-      file.file_type === 'application/pdf' ||
-      file.file_type.includes('pdf') ||
-      file.file_type.startsWith('text/') ||
-      file.file_type.includes('json') ||
-      file.file_type.includes('xml') ||
-      file.file_type.includes('javascript');
+    const previewKind = getFilePreviewKind(file.file_type, file.original_filename);
+    const officeEditorKind = getOfficeEditorKind(file.file_type, file.original_filename);
 
-    if (!previewable) {
+    if (previewKind === 'none') {
       return;
     }
 
@@ -432,21 +432,23 @@ export function FileBrowserPage() {
     setPreviewError(null);
     setPreviewUrl(null);
     setPreviewText(null);
+    setPreviewOfficeContent(null);
 
     try {
+      if (officeEditorKind) {
+        const officeContent = await fileService.getOfficeContent(file.id);
+        setPreviewOfficeContent(officeContent);
+        return;
+      }
+
       const blob = await fileService.download(file.id);
       const objectUrl = URL.createObjectURL(blob);
       previewObjectUrlRef.current = objectUrl;
       setPreviewUrl(objectUrl);
 
-      if (
-        file.file_type.startsWith('text/') ||
-        file.file_type.includes('json') ||
-        file.file_type.includes('xml') ||
-        file.file_type.includes('javascript')
-      ) {
+      if (previewKind === 'document' && isEditableTextFile(file.file_type, file.original_filename)) {
         const text = await blob.text();
-        setPreviewText(text.slice(0, 20000));
+        setPreviewText(text);
       }
     } catch {
       setPreviewError('Unable to load preview for this file.');
@@ -454,6 +456,62 @@ export function FileBrowserPage() {
       setPreviewLoading(false);
     }
   }, []);
+
+  const openProperties = useCallback((file: FileItem) => {
+    setPropertiesFile(file);
+  }, []);
+
+  const handleSavePreviewDocument = useCallback(
+    async (content: string) => {
+      if (!previewFile) {
+        return;
+      }
+
+      setPreviewSaving(true);
+      try {
+        const updatedFile = await fileService.updateContent(previewFile.id, content);
+        setPreviewFile(updatedFile);
+        setPreviewText(content);
+        setFeedback({ tone: 'success', message: `Saved changes to ${updatedFile.original_filename}.` });
+        queryClient.invalidateQueries({ queryKey: ['files'] });
+        queryClient.invalidateQueries({ queryKey: ['file', updatedFile.id] });
+        queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      } catch (error) {
+        const message = getApiErrorMessage(error, 'Unable to save document changes.');
+        setFeedback({ tone: 'error', message });
+        throw error;
+      } finally {
+        setPreviewSaving(false);
+      }
+    },
+    [previewFile, queryClient]
+  );
+
+  const handleSavePreviewOfficeContent = useCallback(
+    async (content: OfficeContent) => {
+      if (!previewFile) {
+        return;
+      }
+
+      setPreviewSaving(true);
+      try {
+        const updatedFile = await fileService.updateOfficeContent(previewFile.id, content);
+        setPreviewFile(updatedFile);
+        setPreviewOfficeContent(content);
+        setFeedback({ tone: 'success', message: `Saved changes to ${updatedFile.original_filename}.` });
+        queryClient.invalidateQueries({ queryKey: ['files'] });
+        queryClient.invalidateQueries({ queryKey: ['file', updatedFile.id] });
+        queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      } catch (error) {
+        const message = getApiErrorMessage(error, 'Unable to save office document changes.');
+        setFeedback({ tone: 'error', message });
+        throw error;
+      } finally {
+        setPreviewSaving(false);
+      }
+    },
+    [previewFile, queryClient]
+  );
 
   const handleDeleteFile = () => {
     if (deleteFile) {
@@ -689,6 +747,7 @@ export function FileBrowserPage() {
                   }}
                   onContextMenu={handleFileContextMenu}
                   onOpenPreview={openPreview}
+                  onOpenProperties={openProperties}
                 />
               ) : (
                 <FileTable
@@ -713,6 +772,7 @@ export function FileBrowserPage() {
                   }}
                   onContextMenu={handleFileContextMenu}
                   onOpenPreview={openPreview}
+                  onOpenProperties={openProperties}
                 />
               )}
             </div>
@@ -734,10 +794,21 @@ export function FileBrowserPage() {
         open={!!previewFile}
         onClose={closePreview}
         onDownload={() => previewFile && handleDownload(previewFile)}
+        onSaveDocument={handleSavePreviewDocument}
+        onSaveOfficeContent={handleSavePreviewOfficeContent}
         previewUrl={previewUrl}
         previewText={previewText}
+        officeContent={previewOfficeContent}
         loading={previewLoading}
         error={previewError}
+        saving={previewSaving}
+      />
+
+      <FilePropertiesModal
+        file={propertiesFile}
+        open={!!propertiesFile}
+        onClose={() => setPropertiesFile(null)}
+        onDownload={() => propertiesFile && handleDownload(propertiesFile)}
       />
 
       {/* Rename File Modal */}
@@ -892,6 +963,7 @@ export function FileBrowserPage() {
           x={contextMenu.x}
           y={contextMenu.y}
           onPreview={() => openPreview(contextMenu.file!)}
+          onProperties={() => openProperties(contextMenu.file!)}
           onDownload={() => handleDownload(contextMenu.file!)}
           onCopy={() => queueClipboard('copy', [contextMenu.file!])}
           onCut={() => queueClipboard('cut', [contextMenu.file!])}

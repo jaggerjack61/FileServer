@@ -10,6 +10,8 @@ import {
   ArchiveBoxIcon,
   ArrowDownTrayIcon,
   DocumentDuplicateIcon,
+  EyeIcon,
+  InformationCircleIcon,
   PencilIcon,
   ScissorsIcon,
   TrashIcon,
@@ -17,7 +19,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { EllipsisVerticalIcon } from '@heroicons/react/24/solid';
 import type { FileItem } from '@/types';
-import { formatFileSize, formatRelativeDate, getFileIcon, getFileColorClass } from '@/lib/utils';
+import { formatFileSize, formatRelativeDate, getFileIcon, getFileColorClass, getFilePreviewKind } from '@/lib/utils';
 import { DropdownMenu } from '@/components/ui/DropdownMenu';
 
 interface FileRowProps {
@@ -32,6 +34,8 @@ interface FileRowProps {
   onMove?: () => void;
   onCompress?: () => void;
   onExtract?: () => void;
+  onPreview?: () => void;
+  onProperties?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
   onDoubleClick?: () => void;
 }
@@ -61,14 +65,19 @@ export function FileRow({
   onMove,
   onCompress,
   onExtract,
+  onPreview,
+  onProperties,
   onContextMenu,
   onDoubleClick,
 }: FileRowProps) {
   const iconType = getFileIcon(file.file_type);
   const colorClass = getFileColorClass(file.file_type);
   const Icon = iconMap[iconType] || DocumentIcon;
+  const canPreview = getFilePreviewKind(file.file_type, file.original_filename) !== 'none';
 
   const dropdownItems = [
+    { label: 'Preview', icon: <EyeIcon className="h-4 w-4" />, onClick: () => onPreview?.(), disabled: !canPreview || !onPreview },
+    { label: 'Properties', icon: <InformationCircleIcon className="h-4 w-4" />, onClick: () => onProperties?.(), disabled: !onProperties },
     { label: 'Download', icon: <ArrowDownTrayIcon className="h-4 w-4" />, onClick: onDownload },
     ...(onCopy ? [{ label: 'Copy', icon: <DocumentDuplicateIcon className="h-4 w-4" />, onClick: onCopy }] : []),
     ...(onCut ? [{ label: 'Cut', icon: <ScissorsIcon className="h-4 w-4" />, onClick: onCut }] : []),

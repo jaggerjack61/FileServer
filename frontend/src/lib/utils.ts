@@ -1,5 +1,55 @@
 import { formatDistanceToNow } from 'date-fns';
 
+const editableTextExtensions = new Set([
+  'txt',
+  'md',
+  'markdown',
+  'json',
+  'xml',
+  'html',
+  'htm',
+  'css',
+  'js',
+  'jsx',
+  'ts',
+  'tsx',
+  'csv',
+  'yml',
+  'yaml',
+  'ini',
+  'log',
+  'py',
+  'java',
+  'c',
+  'cpp',
+  'h',
+  'hpp',
+  'sh',
+  'sql',
+]);
+
+const documentExtensions = new Set([
+  ...editableTextExtensions,
+  'doc',
+  'docx',
+  'rtf',
+  'odt',
+  'xls',
+  'xlsx',
+  'ods',
+  'ppt',
+  'pptx',
+  'odp',
+]);
+
+export type FilePreviewKind = 'image' | 'video' | 'audio' | 'pdf' | 'document' | 'none';
+export type OfficeEditorKind = 'word' | 'spreadsheet' | 'presentation';
+
+function getNormalizedExtension(filename: string): string {
+  const parts = filename.split('.');
+  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
+}
+
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -35,6 +85,60 @@ export function isArchiveFile(fileType: string, filename?: string): boolean {
     normalizedType.includes('compressed') ||
     normalizedName.endsWith('.zip')
   );
+}
+
+export function isEditableTextFile(fileType: string, filename: string): boolean {
+  const normalizedType = (fileType || '').toLowerCase();
+  const extension = getNormalizedExtension(filename || '');
+
+  return (
+    normalizedType.startsWith('text/') ||
+    normalizedType.includes('json') ||
+    normalizedType.includes('/xml') ||
+    normalizedType.endsWith('+xml') ||
+    normalizedType.includes('javascript') ||
+    normalizedType.includes('ecmascript') ||
+    normalizedType.includes('yaml') ||
+    editableTextExtensions.has(extension)
+  );
+}
+
+export function isDocumentFile(fileType: string, filename: string): boolean {
+  const normalizedType = (fileType || '').toLowerCase();
+  const extension = getNormalizedExtension(filename || '');
+
+  return (
+    isEditableTextFile(fileType, filename) ||
+    normalizedType.includes('document') ||
+    normalizedType.includes('word') ||
+    normalizedType.includes('spreadsheet') ||
+    normalizedType.includes('excel') ||
+    normalizedType.includes('presentation') ||
+    normalizedType.includes('powerpoint') ||
+    normalizedType.includes('rtf') ||
+    documentExtensions.has(extension)
+  );
+}
+
+export function getOfficeEditorKind(fileType: string, filename: string): OfficeEditorKind | null {
+  const normalizedType = (fileType || '').toLowerCase();
+  const extension = getNormalizedExtension(filename || '');
+
+  if (extension === 'docx' || normalizedType.includes('wordprocessingml.document')) return 'word';
+  if (extension === 'xlsx' || normalizedType.includes('spreadsheetml.sheet')) return 'spreadsheet';
+  if (extension === 'pptx' || extension === 'pptm' || normalizedType.includes('presentationml.presentation')) return 'presentation';
+  return null;
+}
+
+export function getFilePreviewKind(fileType: string, filename: string): FilePreviewKind {
+  const normalizedType = (fileType || '').toLowerCase();
+
+  if (normalizedType.startsWith('image/')) return 'image';
+  if (normalizedType.startsWith('video/')) return 'video';
+  if (normalizedType.startsWith('audio/')) return 'audio';
+  if (normalizedType === 'application/pdf' || normalizedType.includes('pdf')) return 'pdf';
+  if (isDocumentFile(fileType, filename)) return 'document';
+  return 'none';
 }
 
 export function getFileColorClass(fileType: string): string {

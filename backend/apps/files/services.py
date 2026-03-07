@@ -89,6 +89,20 @@ class LocalStorageService:
         abs_path = self._resolve(storage_path)
         return abs_path if abs_path.exists() else None
 
+    def read_file_bytes(self, storage_path: str) -> bytes:
+        abs_path = self._resolve(storage_path)
+        with open(abs_path, "rb") as source:
+            return source.read()
+
+    def update_file(self, storage_path: str, content: bytes) -> int:
+        """Overwrite an existing file and return the new byte size."""
+        abs_path = self._resolve(storage_path)
+        abs_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(abs_path, "wb") as dest:
+            dest.write(content)
+        logger.info("File updated: %s (%d bytes)", storage_path, len(content))
+        return len(content)
+
 
 class S3StorageService:
     """
@@ -141,6 +155,15 @@ class S3StorageService:
             ExpiresIn=3600,
         )
         return url
+
+    def read_file_bytes(self, storage_path: str) -> bytes:
+        response = self.client.get_object(Bucket=self.bucket, Key=storage_path)
+        return response["Body"].read()
+
+    def update_file(self, storage_path: str, content: bytes) -> int:
+        self.client.put_object(Bucket=self.bucket, Key=storage_path, Body=content)
+        logger.info("S3 file updated: %s (%d bytes)", storage_path, len(content))
+        return len(content)
 
 
 def get_storage_service():

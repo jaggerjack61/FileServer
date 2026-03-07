@@ -66,6 +66,14 @@ class FileMoveSerializer(serializers.Serializer):
     folder_id = serializers.UUIDField(required=False, allow_null=True)
 
 
+class FileContentUpdateSerializer(serializers.Serializer):
+    content = serializers.CharField(allow_blank=True)
+
+
+class FileOfficeContentSerializer(serializers.Serializer):
+    content = serializers.JSONField()
+
+
 class FileIdListSerializer(serializers.Serializer):
     file_ids = serializers.ListField(
         child=serializers.UUIDField(),

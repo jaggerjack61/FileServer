@@ -3,6 +3,7 @@ import type {
   FileCompressResponse,
   FileExtractResponse,
   FileItem,
+  OfficeContent,
   PaginatedResponse,
 } from '@/types';
 
@@ -47,6 +48,21 @@ export const fileService = {
 
   rename: async (id: string, filename: string): Promise<FileItem> => {
     const { data } = await api.put<FileItem>(`/files/${id}/rename/`, { filename });
+    return data;
+  },
+
+  updateContent: async (id: string, content: string): Promise<FileItem> => {
+    const { data } = await api.put<FileItem>(`/files/${id}/content/`, { content });
+    return data;
+  },
+
+  getOfficeContent: async (id: string): Promise<OfficeContent> => {
+    const { data } = await api.get<{ content: OfficeContent }>(`/files/${id}/office-content/`);
+    return data.content;
+  },
+
+  updateOfficeContent: async (id: string, content: OfficeContent): Promise<FileItem> => {
+    const { data } = await api.put<FileItem>(`/files/${id}/office-content/`, { content });
     return data;
   },
 

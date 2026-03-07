@@ -17,6 +17,7 @@ const TenantsPage = lazy(() => import('@/features/admin/TenantsPage').then(m => 
 const TenantDetailPage = lazy(() => import('@/features/admin/TenantDetailPage').then(m => ({ default: m.TenantDetailPage })));
 const AdminApiKeysPage = lazy(() => import('@/features/admin/AdminApiKeysPage').then(m => ({ default: m.AdminApiKeysPage })));
 const ActivityLogPage = lazy(() => import('@/features/admin/ActivityLogPage').then(m => ({ default: m.ActivityLogPage })));
+const OfficeEditorPage = lazy(() => import('@/features/files/OfficeEditorPage').then(m => ({ default: m.OfficeEditorPage })));
 
 function SuspenseWrapper({ children }: { children: ReactNode }) {
   return (
@@ -72,6 +73,14 @@ export const router = createBrowserRouter([
       <GuestRoute>
         <SuspenseWrapper><RegisterPage /></SuspenseWrapper>
       </GuestRoute>
+    ),
+  },
+  {
+    path: '/office/:fileId',
+    element: (
+      <ProtectedRoute>
+        <SuspenseWrapper><OfficeEditorPage /></SuspenseWrapper>
+      </ProtectedRoute>
     ),
   },
   {

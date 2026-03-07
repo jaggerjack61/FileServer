@@ -18,6 +18,7 @@ interface FileGridProps {
   onExtract?: (file: FileItem) => void;
   onContextMenu?: (e: React.MouseEvent, file: FileItem) => void;
   onOpenPreview?: (file: FileItem) => void;
+  onOpenProperties?: (file: FileItem) => void;
 }
 
 export function FileGrid({
@@ -35,6 +36,7 @@ export function FileGrid({
   onExtract,
   onContextMenu,
   onOpenPreview,
+  onOpenProperties,
 }: FileGridProps) {
   if (files.length === 0) {
     return (
@@ -63,6 +65,8 @@ export function FileGrid({
           onMove={onMove ? () => onMove(file) : undefined}
           onCompress={onCompress ? () => onCompress(file) : undefined}
           onExtract={onExtract ? () => onExtract(file) : undefined}
+          onPreview={onOpenPreview ? () => onOpenPreview(file) : undefined}
+          onProperties={onOpenProperties ? () => onOpenProperties(file) : undefined}
           onContextMenu={onContextMenu ? (e: React.MouseEvent) => onContextMenu(e, file) : undefined}
           onDoubleClick={onOpenPreview ? () => onOpenPreview(file) : undefined}
         />

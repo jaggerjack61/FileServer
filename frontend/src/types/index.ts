@@ -32,6 +32,46 @@ export interface FileItem {
   download_url: string;
 }
 
+export interface OfficeWordParagraph {
+  text: string;
+}
+
+export interface OfficeWordContent {
+  kind: 'word';
+  format: 'docx';
+  paragraphs: OfficeWordParagraph[];
+}
+
+export interface OfficeSpreadsheetSheet {
+  name: string;
+  rows: string[][];
+}
+
+export interface OfficeSpreadsheetContent {
+  kind: 'spreadsheet';
+  format: 'xlsx';
+  sheets: OfficeSpreadsheetSheet[];
+}
+
+export interface OfficePresentationShape {
+  index: number;
+  name: string;
+  text: string;
+}
+
+export interface OfficePresentationSlide {
+  title: string;
+  shapes: OfficePresentationShape[];
+}
+
+export interface OfficePresentationContent {
+  kind: 'presentation';
+  format: 'pptx';
+  slides: OfficePresentationSlide[];
+}
+
+export type OfficeContent = OfficeWordContent | OfficeSpreadsheetContent | OfficePresentationContent;
+
 export interface FileCompressResponse {
   archive: FileItem;
 }

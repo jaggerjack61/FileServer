@@ -21,11 +21,14 @@ from apps.folders.models import Folder
 from apps.tenants.models import Tenant
 
 from .models import File
+from .office import get_office_editor_kind, load_office_content, save_office_content
 from .serializers import (
     FileBulkDestinationSerializer,
     FileCompressSerializer,
+    FileContentUpdateSerializer,
     FileExtractSerializer,
     FileMoveSerializer,
+    FileOfficeContentSerializer,
     FileRenameSerializer,
     FileSerializer,
     FileUploadSerializer,
@@ -207,6 +210,135 @@ class FileRenameView(APIView):
         return Response(FileSerializer(file_obj, context={"request": request}).data)
 
 
+class FileContentUpdateView(APIView):
+    """PUT /api/files/{id}/content/"""
+
+    permission_classes = [IsAuthenticated | HasTenantAPIKey]
+
+    def put(self, request, pk):
+        tenant = _get_tenant(request)
+        if not tenant:
+            return Response({"detail": "No tenant associated."}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            file_obj = File.objects.select_related("owner").get(id=pk, tenant=tenant, is_deleted=False)
+        except File.DoesNotExist:
+            return Response({"detail": "File not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not _is_text_editable_file(file_obj.file_type, file_obj.original_filename):
+            return Response(
+                {"detail": "This file type cannot be edited in the browser."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = FileContentUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        encoded_content = serializer.validated_data["content"].encode("utf-8")
+        size_delta = len(encoded_content) - file_obj.file_size
+        if size_delta > 0 and tenant.storage_used + size_delta > tenant.storage_quota:
+            return Response(
+                {"detail": "Storage quota exceeded."},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+
+        storage = get_storage_service()
+        new_size = storage.update_file(file_obj.storage_path, encoded_content)
+        if new_size != file_obj.file_size:
+            tenant.storage_used = max(0, tenant.storage_used + (new_size - file_obj.file_size))
+            tenant.save(update_fields=["storage_used"])
+
+        file_obj.file_size = new_size
+        file_obj.save(update_fields=["file_size", "updated_at"])
+
+        logger.info("File content updated: %s by user %s", file_obj.filename, request.user)
+        return Response(FileSerializer(file_obj, context={"request": request}).data)
+
+
+class FileOfficeContentView(APIView):
+    """GET/PUT /api/files/{id}/office-content/"""
+
+    permission_classes = [IsAuthenticated | HasTenantAPIKey]
+
+    def get(self, request, pk):
+        tenant = _get_tenant(request)
+        if not tenant:
+            return Response({"detail": "No tenant associated."}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            file_obj = File.objects.select_related("owner").get(id=pk, tenant=tenant, is_deleted=False)
+        except File.DoesNotExist:
+            return Response({"detail": "File not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not get_office_editor_kind(file_obj.file_type, file_obj.original_filename):
+            return Response(
+                {"detail": "This file type is not supported for local office editing."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        storage = get_storage_service()
+        raw_bytes = storage.read_file_bytes(file_obj.storage_path)
+
+        try:
+            content = load_office_content(file_obj.file_type, file_obj.original_filename, raw_bytes)
+        except Exception as exc:
+            logger.warning("Unable to load office content for %s: %s", file_obj.id, exc)
+            return Response({"detail": "Unable to load office content for this file."}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"content": content})
+
+    def put(self, request, pk):
+        tenant = _get_tenant(request)
+        if not tenant:
+            return Response({"detail": "No tenant associated."}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            file_obj = File.objects.select_related("owner").get(id=pk, tenant=tenant, is_deleted=False)
+        except File.DoesNotExist:
+            return Response({"detail": "File not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not get_office_editor_kind(file_obj.file_type, file_obj.original_filename):
+            return Response(
+                {"detail": "This file type is not supported for local office editing."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = FileOfficeContentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        storage = get_storage_service()
+        current_bytes = storage.read_file_bytes(file_obj.storage_path)
+
+        try:
+            updated_bytes = save_office_content(
+                file_obj.file_type,
+                file_obj.original_filename,
+                current_bytes,
+                serializer.validated_data["content"],
+            )
+        except Exception as exc:
+            logger.warning("Unable to save office content for %s: %s", file_obj.id, exc)
+            return Response({"detail": "Unable to save office content for this file."}, status=status.HTTP_400_BAD_REQUEST)
+
+        size_delta = len(updated_bytes) - file_obj.file_size
+        if size_delta > 0 and tenant.storage_used + size_delta > tenant.storage_quota:
+            return Response(
+                {"detail": "Storage quota exceeded."},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+
+        new_size = storage.update_file(file_obj.storage_path, updated_bytes)
+        if new_size != file_obj.file_size:
+            tenant.storage_used = max(0, tenant.storage_used + (new_size - file_obj.file_size))
+            tenant.save(update_fields=["storage_used"])
+
+        file_obj.file_size = new_size
+        file_obj.save(update_fields=["file_size", "updated_at"])
+
+        logger.info("Office content updated: %s by user %s", file_obj.filename, request.user)
+        return Response(FileSerializer(file_obj, context={"request": request}).data)
+
+
 class FileDownloadView(APIView):
     """GET /api/files/{id}/download/"""
 
@@ -284,6 +416,48 @@ def _default_archive_name(files: list[File]) -> str:
     else:
         base_name = f"archive-{timezone.now():%Y%m%d-%H%M%S}"
     return f"{base_name}.zip"
+
+
+def _is_text_editable_file(file_type: str, filename: str) -> bool:
+    normalized_type = (file_type or "").lower()
+    normalized_name = (filename or "").lower()
+    editable_extensions = {
+        ".txt",
+        ".md",
+        ".markdown",
+        ".json",
+        ".xml",
+        ".html",
+        ".htm",
+        ".css",
+        ".js",
+        ".jsx",
+        ".ts",
+        ".tsx",
+        ".csv",
+        ".yml",
+        ".yaml",
+        ".ini",
+        ".log",
+        ".py",
+        ".java",
+        ".c",
+        ".cpp",
+        ".h",
+        ".hpp",
+        ".sh",
+        ".sql",
+    }
+
+    return (
+        normalized_type.startswith("text/")
+        or "json" in normalized_type
+        or "xml" in normalized_type
+        or "javascript" in normalized_type
+        or "ecmascript" in normalized_type
+        or "yaml" in normalized_type
+        or PurePosixPath(normalized_name).suffix in editable_extensions
+    )
 
 
 def _normalize_archive_name(name: str | None, files: list[File]) -> str:

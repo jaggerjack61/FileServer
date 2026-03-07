@@ -15,5 +15,7 @@ urlpatterns = [
     path("<uuid:pk>/extract/", views.FileExtractView.as_view(), name="file-extract"),
     path("<uuid:pk>/rename/", views.FileRenameView.as_view(), name="file-rename"),
     path("<uuid:pk>/move/", views.FileMoveView.as_view(), name="file-move"),
+    path("<uuid:pk>/content/", views.FileContentUpdateView.as_view(), name="file-content-update"),
+    path("<uuid:pk>/office-content/", views.FileOfficeContentView.as_view(), name="file-office-content"),
     path("<uuid:pk>/download/", views.FileDownloadView.as_view(), name="file-download"),
 ]

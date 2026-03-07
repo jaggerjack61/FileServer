@@ -5,6 +5,7 @@ import {
   ArrowRightIcon,
   DocumentDuplicateIcon,
   EyeIcon,
+  InformationCircleIcon,
   PencilIcon,
   ScissorsIcon,
   TrashIcon,
@@ -23,6 +24,7 @@ interface FileContextMenuProps {
   onExtract?: () => void;
   onDelete: () => void;
   onPreview: () => void;
+  onProperties: () => void;
   onClose: () => void;
 }
 
@@ -38,6 +40,7 @@ export function FileContextMenu({
   onExtract,
   onDelete,
   onPreview,
+  onProperties,
   onClose,
 }: FileContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -72,6 +75,16 @@ export function FileContextMenu({
         >
           <EyeIcon className="h-4 w-4" />
           Preview
+        </button>
+        <button
+          onClick={() => {
+            onProperties();
+            onClose();
+          }}
+          className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+        >
+          <InformationCircleIcon className="h-4 w-4" />
+          Properties
         </button>
         <button
           onClick={() => {
