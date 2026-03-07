@@ -8,8 +8,13 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env file in the project root
+load_dotenv(BASE_DIR / ".env")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get(
@@ -130,15 +135,24 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ---------------------------------------------------------------------------
-# File upload limits – 100 MB
+# File upload limits
 # ---------------------------------------------------------------------------
-DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
+_FILE_UPLOAD_MAX_SIZE = int(os.environ.get("FILE_UPLOAD_MAX_SIZE", 104857600))  # default 100 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = _FILE_UPLOAD_MAX_SIZE
+FILE_UPLOAD_MAX_MEMORY_SIZE = _FILE_UPLOAD_MAX_SIZE
+
+# Maximum office file size for document preview/parsing (default 20 MB)
+OFFICE_PREVIEW_MAX_FILE_SIZE = int(os.environ.get("OFFICE_PREVIEW_MAX_FILE_SIZE", 20971520))
 
 # ---------------------------------------------------------------------------
 # CORS (django-cors-headers)
 # ---------------------------------------------------------------------------
+_CORS_ORIGINS_ENV = os.environ.get("CORS_ALLOWED_ORIGINS", "")
 CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in _CORS_ORIGINS_ENV.split(",")
+    if origin.strip()
+] if _CORS_ORIGINS_ENV else [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:3001",
@@ -147,6 +161,14 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
 ]
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
 CORS_ALLOW_HEADERS = [
     "accept",
     "accept-encoding",

@@ -448,7 +448,7 @@ export function FileBrowserPage() {
 
       if (previewKind === 'document' && isEditableTextFile(file.file_type, file.original_filename)) {
         const text = await blob.text();
-        setPreviewText(text);
+        setPreviewText(text.slice(0, 200000));
       }
     } catch {
       setPreviewError('Unable to load preview for this file.');

@@ -11,6 +11,7 @@ A multi-tenant enterprise file storage service with a Google Drive–inspired we
 | Database | SQLite (dev) / PostgreSQL (prod) |
 | Storage | Local filesystem (dev) / S3-compatible (prod) |
 | Frontend | React 18, TypeScript, Vite, TailwindCSS |
+| Office | python-docx, openpyxl, python-pptx (Word, Excel, PowerPoint) |
 | State | Zustand (auth), TanStack Query (server state) |
 | UI | Headless UI, Heroicons, Recharts |
 
@@ -27,7 +28,9 @@ FileServer/
 │   │   ├── folders/         # Folder tree management
 │   │   └── api_keys/        # Tenant-scoped API key system
 │   ├── manage.py
-│   └── requirements.txt
+│   ├── requirements.txt
+│   ├── .env                 # Environment config (from .env.example)
+│   └── .env.example         # Template with all available env vars
 ├── frontend/
 │   ├── src/
 │   │   ├── components/      # UI, layout, file, and folder components
@@ -66,6 +69,10 @@ source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Copy environment config
+copy .env.example .env   # Windows
+# cp .env.example .env   # macOS/Linux
 
 # Run migrations
 python manage.py migrate
@@ -115,11 +122,17 @@ The app will be available at `http://localhost:5173`.
 | DELETE | `/api/files/{id}/` | Soft delete |
 | PUT | `/api/files/{id}/rename/` | Rename file |
 | PUT | `/api/files/{id}/move/` | Move file to folder |
+| PUT | `/api/files/{id}/content/` | Update text file content |
+| GET | `/api/files/{id}/office-content/` | Load Office document for viewing/editing |
+| PUT | `/api/files/{id}/office-content/` | Save Office document changes |
 | GET | `/api/files/{id}/download/` | Download file |
 | GET | `/api/files/trash/` | List trashed files |
 | POST | `/api/files/trash/{id}/restore/` | Restore from trash |
 | POST | `/api/files/bulk-delete/` | Bulk soft-delete |
 | POST | `/api/files/bulk-move/` | Bulk move to folder |
+| POST | `/api/files/bulk-copy/` | Bulk copy to folder |
+| POST | `/api/files/compress/` | Compress files into a ZIP archive |
+| POST | `/api/files/{id}/extract/` | Extract a ZIP archive |
 
 ### Folders
 
@@ -150,6 +163,43 @@ The app will be available at `http://localhost:5173`.
 | GET | `/api/admin/storage-usage/` | Storage metrics |
 | GET | `/api/admin/system-metrics/` | System health |
 | GET | `/api/admin/activity/` | Recent activity log |
+
+## Environment Configuration
+
+The backend uses a `.env` file for configuration. Copy the example and adjust as needed:
+
+```bash
+cd backend
+copy .env.example .env   # Windows
+# cp .env.example .env   # macOS/Linux
+```
+
+Key variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DJANGO_SECRET_KEY` | insecure dev key | Django secret key |
+| `DJANGO_DEBUG` | `True` | Debug mode |
+| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated allowed hosts |
+| `FILE_UPLOAD_MAX_SIZE` | `104857600` (100 MB) | Max file upload size in bytes |
+| `OFFICE_PREVIEW_MAX_FILE_SIZE` | `20971520` (20 MB) | Max office file size for document preview |
+| `CORS_ALLOWED_ORIGINS` | localhost dev servers | Comma-separated CORS origins |
+
+See `.env.example` for the full list including database and S3 settings.
+
+## Office Document Viewer/Editor
+
+The platform includes a built-in viewer and editor for Microsoft Office files:
+
+- **Word (.docx)** — paragraphs with rich text formatting, tables, embedded images
+- **Excel (.xlsx)** — multi-sheet support, cell formatting, merged cells, column widths
+- **PowerPoint (.pptx/.pptm)** — slide thumbnails, positioned shapes, rich text runs, embedded images
+
+Features:
+- **Table extraction**: Word tables are extracted and rendered in document order alongside paragraphs
+- **Embedded images**: Images from Word documents and PowerPoint presentations are extracted and displayed as inline previews
+- **Theme color resolution**: Office theme-based colors (dk1, accent1, etc.) are resolved to RGB hex values using the document's theme XML, with fallback to default Office theme colors
+- **Preview size limit**: Configurable via `OFFICE_PREVIEW_MAX_FILE_SIZE` in `.env` (default 20 MB) to prevent parsing very large files
 
 ## Authentication
 
@@ -329,14 +379,16 @@ Validation error shape example:
 - No raw storage paths exposed in API responses
 - Rate limiting (30/min anonymous, 120/min authenticated)
 - Audit logging for file operations
-- CORS restricted to configured origins
-- 100MB max upload size
+- CORS restricted to configured origins (configurable via `CORS_ALLOWED_ORIGINS` env var)
+- File upload size limit configurable via `FILE_UPLOAD_MAX_SIZE` env var (default 100 MB)
+- Office preview size limit configurable via `OFFICE_PREVIEW_MAX_FILE_SIZE` env var (default 20 MB)
 
 ## Production Considerations
 
 - Switch to PostgreSQL (`dj-database-url`)
 - Configure S3/MinIO for object storage
-- Set `DEBUG = False` and configure `SECRET_KEY`
+- Set `DEBUG = False` and configure `SECRET_KEY` via env vars
+- Configure CORS origins via `CORS_ALLOWED_ORIGINS` env var
 - Enable `SECURE_SSL_REDIRECT`, `SECURE_HSTS_SECONDS`
 - Add Redis for caching + Celery task queue
 - Set up CDN for file delivery

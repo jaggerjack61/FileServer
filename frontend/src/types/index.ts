@@ -32,19 +32,65 @@ export interface FileItem {
   download_url: string;
 }
 
+export interface OfficeWordRun {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  fontSize?: number;
+  color?: string;
+}
+
 export interface OfficeWordParagraph {
   text: string;
+  runs?: OfficeWordRun[];
+  alignment?: 'left' | 'center' | 'right' | 'justify';
+  style?: string;
+}
+
+export interface OfficeWordTableCell {
+  text: string;
+  runs?: OfficeWordRun[];
+}
+
+export interface OfficeWordTable {
+  rows: OfficeWordTableCell[][];
+}
+
+export interface OfficeWordBlock {
+  type: 'paragraph' | 'table';
+  index: number;
+}
+
+export interface OfficeEmbeddedImage {
+  contentType: string;
+  dataUri: string;
 }
 
 export interface OfficeWordContent {
   kind: 'word';
   format: 'docx';
   paragraphs: OfficeWordParagraph[];
+  tables?: OfficeWordTable[];
+  blocks?: OfficeWordBlock[];
+  images?: OfficeEmbeddedImage[];
+}
+
+export interface OfficeSpreadsheetCell {
+  bold?: boolean;
+  italic?: boolean;
+  color?: string;
+  bgColor?: string;
+  fontSize?: number;
+  align?: string;
 }
 
 export interface OfficeSpreadsheetSheet {
   name: string;
   rows: string[][];
+  cells?: Record<string, OfficeSpreadsheetCell>;
+  mergedCells?: number[][];
+  columnWidths?: Array<number | null>;
 }
 
 export interface OfficeSpreadsheetContent {
@@ -53,21 +99,36 @@ export interface OfficeSpreadsheetContent {
   sheets: OfficeSpreadsheetSheet[];
 }
 
+export interface OfficePresentationRun {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  fontSize?: number;
+  color?: string;
+}
+
 export interface OfficePresentationShape {
   index: number;
   name: string;
   text: string;
+  runs?: OfficePresentationRun[];
+  left?: number;
+  top?: number;
+  width?: number;
+  height?: number;
 }
 
 export interface OfficePresentationSlide {
   title: string;
   shapes: OfficePresentationShape[];
+  titleRuns?: OfficePresentationRun[];
 }
 
 export interface OfficePresentationContent {
   kind: 'presentation';
   format: 'pptx';
   slides: OfficePresentationSlide[];
+  images?: OfficeEmbeddedImage[];
 }
 
 export type OfficeContent = OfficeWordContent | OfficeSpreadsheetContent | OfficePresentationContent;

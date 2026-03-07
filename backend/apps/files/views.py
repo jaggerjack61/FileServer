@@ -276,6 +276,14 @@ class FileOfficeContentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        max_preview_size = getattr(settings, "OFFICE_PREVIEW_MAX_FILE_SIZE", 20971520)
+        if file_obj.file_size > max_preview_size:
+            limit_mb = max_preview_size / (1024 * 1024)
+            return Response(
+                {"detail": f"File is too large for document preview (limit: {limit_mb:.0f} MB)."},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+
         storage = get_storage_service()
         raw_bytes = storage.read_file_bytes(file_obj.storage_path)
 

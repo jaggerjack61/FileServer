@@ -52,9 +52,10 @@ class FileUploadSerializer(serializers.Serializer):
     folder_id = serializers.UUIDField(required=False, allow_null=True)
 
     def validate_file(self, value):
-        max_size = 104857600  # 100 MB
+        max_size = getattr(settings, "FILE_UPLOAD_MAX_MEMORY_SIZE", 104857600)
         if value.size > max_size:
-            raise serializers.ValidationError("File size exceeds 100 MB limit.")
+            limit_mb = max_size / (1024 * 1024)
+            raise serializers.ValidationError(f"File size exceeds {limit_mb:.0f} MB limit.")
         return value
 
 
