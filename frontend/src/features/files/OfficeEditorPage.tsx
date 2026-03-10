@@ -141,9 +141,9 @@ export function OfficeEditorPage() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-[#f8f9fa]">
+    <div className="flex h-screen flex-col bg-gray-50 dark:bg-slate-950 dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.06),_transparent_40%),radial-gradient(circle_at_80%_20%,_rgba(14,165,233,0.05),_transparent_30%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(2,6,23,1))]">
       {/* ─── Google-style top bar ─── */}
-      <header className="z-30 flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-2 shadow-sm">
+      <header className="z-30 flex items-center gap-3 border-b border-gray-200 bg-white/95 px-4 py-2 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-900/85">
         {/* Back + icon */}
         <button
           type="button"
@@ -163,9 +163,9 @@ export function OfficeEditorPage() {
           <h1 className="truncate text-base font-semibold leading-tight text-gray-900">
             {file?.original_filename ?? 'Untitled'}
           </h1>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
             <span className="capitalize">{theme.label}</span>
-            <span className="text-gray-300">·</span>
+            <span className="text-gray-300 dark:text-slate-600">·</span>
             {editing ? (
               <span className="font-medium text-emerald-600">Editing</span>
             ) : (
@@ -187,7 +187,7 @@ export function OfficeEditorPage() {
             <button
               type="button"
               onClick={startEditing}
-              className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+              className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
             >
               <PencilIcon className="h-4 w-4" /> Edit
             </button>
@@ -198,7 +198,7 @@ export function OfficeEditorPage() {
               <button
                 type="button"
                 onClick={cancelEditing}
-                className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
               >
                 Cancel
               </button>
@@ -219,7 +219,7 @@ export function OfficeEditorPage() {
           <button
             type="button"
             onClick={handleDownload}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-white/10"
             aria-label="Download"
           >
             <ArrowDownTrayIcon className="h-5 w-5" />

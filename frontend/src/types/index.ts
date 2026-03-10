@@ -44,6 +44,7 @@ export interface OfficeWordRun {
 export interface OfficeWordParagraph {
   text: string;
   runs?: OfficeWordRun[];
+  content?: OfficeWordContentItem[];
   alignment?: 'left' | 'center' | 'right' | 'justify';
   style?: string;
 }
@@ -65,7 +66,26 @@ export interface OfficeWordBlock {
 export interface OfficeEmbeddedImage {
   contentType: string;
   dataUri: string;
+  name?: string;
+  altText?: string;
+  width?: number;
+  height?: number;
 }
+
+export interface OfficeWordTextContentItem extends OfficeWordRun {
+  type: 'text';
+}
+
+export interface OfficeWordImageContentItem extends OfficeEmbeddedImage {
+  type: 'image';
+  placement?: 'inline' | 'block' | 'floating';
+  align?: 'left' | 'center' | 'right';
+  wrap?: 'square' | 'tight' | 'topAndBottom' | 'behindText' | 'none';
+  offsetX?: number;
+  offsetY?: number;
+}
+
+export type OfficeWordContentItem = OfficeWordTextContentItem | OfficeWordImageContentItem;
 
 export interface OfficeWordContent {
   kind: 'word';
@@ -118,10 +138,27 @@ export interface OfficePresentationShape {
   height?: number;
 }
 
+export interface OfficePresentationImage extends OfficeEmbeddedImage {
+  index: number;
+  name: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  cropLeft?: number;
+  cropRight?: number;
+  cropTop?: number;
+  cropBottom?: number;
+  rotation?: number;
+}
+
 export interface OfficePresentationSlide {
   title: string;
   shapes: OfficePresentationShape[];
   titleRuns?: OfficePresentationRun[];
+  images?: OfficePresentationImage[];
+  backgroundColor?: string;
+  backgroundImage?: OfficeEmbeddedImage;
 }
 
 export interface OfficePresentationContent {

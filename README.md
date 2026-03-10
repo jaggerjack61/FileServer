@@ -197,7 +197,7 @@ The platform includes a built-in viewer and editor for Microsoft Office files:
 
 Features:
 - **Table extraction**: Word tables are extracted and rendered in document order alongside paragraphs
-- **Embedded images**: Images from Word documents and PowerPoint presentations are extracted and displayed as inline previews
+- **Embedded images**: DOCX images render in document order and PowerPoint pictures render on slide coordinates, with unplaced media kept as a fallback shelf
 - **Theme color resolution**: Office theme-based colors (dk1, accent1, etc.) are resolved to RGB hex values using the document's theme XML, with fallback to default Office theme colors
 - **Preview size limit**: Configurable via `OFFICE_PREVIEW_MAX_FILE_SIZE` in `.env` (default 20 MB) to prevent parsing very large files
 

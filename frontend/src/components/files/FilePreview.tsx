@@ -86,7 +86,7 @@ export function FilePreview({
   return (
     <Modal open={open} onClose={onClose} title={file.original_filename} size={isOfficePreview ? 'xl' : 'lg'}>
       <div className="space-y-4">
-        <div className={isOfficePreview ? 'min-h-[320px] max-h-[72vh] overflow-hidden' : 'bg-gray-100 rounded-lg p-4 min-h-[220px] max-h-[420px] overflow-auto'}>
+        <div className={isOfficePreview ? 'min-h-[320px] max-h-[72vh] overflow-hidden rounded-xl border border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-slate-950/30' : 'bg-gray-100 rounded-lg p-4 min-h-[220px] max-h-[420px] overflow-auto dark:bg-slate-950/40'}>
           {loading && (
             <div className="h-full min-h-[180px] flex items-center justify-center text-gray-500 text-sm">
               Loading preview...
