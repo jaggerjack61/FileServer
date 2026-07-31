@@ -3,7 +3,10 @@ import { adminService } from '@/services/adminService';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
+import { Alert } from '@/components/ui/Alert';
+import { Button } from '@/components/ui/Button';
 import { formatRelativeDate } from '@/lib/utils';
+import { getApiErrorMessage } from '@/lib/errors';
 import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 
 export function AdminApiKeysPage() {
@@ -20,9 +23,11 @@ export function AdminApiKeysPage() {
 
   if (tenantsQuery.isError) {
     return (
-      <div className="text-center py-20 text-red-500">
-        Failed to load data.
-      </div>
+      <Alert
+        action={<Button variant="ghost" size="sm" onClick={() => tenantsQuery.refetch()}>Retry</Button>}
+      >
+        {getApiErrorMessage(tenantsQuery.error, 'Unable to load tenants.')}
+      </Alert>
     );
   }
 
@@ -77,6 +82,13 @@ function TenantApiKeysCard({ tenantId, tenantName }: { tenantId: string; tenantN
 
       {keysQuery.isLoading ? (
         <Spinner className="py-6" size="sm" />
+      ) : keysQuery.isError ? (
+        <Alert
+          className="m-4"
+          action={<Button variant="ghost" size="sm" onClick={() => keysQuery.refetch()}>Retry</Button>}
+        >
+          {getApiErrorMessage(keysQuery.error, `Unable to load API keys for ${tenantName}.`)}
+        </Alert>
       ) : keys.length === 0 ? (
         <p className="px-6 py-4 text-sm text-gray-400">No API keys.</p>
       ) : (

@@ -45,7 +45,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
             placeholder="Search files..."
             value={searchValue}
             onChange={(e) => handleSearch(e.target.value)}
-            className="w-80 rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors dark:border-white/10 dark:bg-slate-950/50 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-cyan-300 dark:focus:bg-slate-950/80 dark:focus:ring-cyan-300"
+            className="w-40 rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors sm:w-64 md:w-80 dark:border-white/10 dark:bg-slate-950/50 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-cyan-300 dark:focus:bg-slate-950/80 dark:focus:ring-cyan-300"
           />
         </div>
       </div>

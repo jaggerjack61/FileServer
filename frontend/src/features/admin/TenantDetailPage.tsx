@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { StorageBar } from '@/components/ui/StorageBar';
 import { Modal } from '@/components/ui/Modal';
+import { Alert } from '@/components/ui/Alert';
 import { formatFileSize, formatRelativeDate } from '@/lib/utils';
+import { getApiErrorMessage } from '@/lib/errors';
 import {
   ArrowLeftIcon,
   ShieldCheckIcon,
@@ -76,10 +78,12 @@ export function TenantDetailPage() {
   const apiKeys = apiKeysQuery.data?.results ?? [];
 
   const handleQuotaUpdate = (quotaBytes: number) => {
+    updateMutation.reset();
     updateMutation.mutate({ storage_quota: quotaBytes });
   };
 
   const handleToggleActive = () => {
+    updateMutation.reset();
     updateMutation.mutate({ is_active: !tenant.is_active });
   };
 
@@ -92,6 +96,22 @@ export function TenantDetailPage() {
 
   return (
     <div className="space-y-6">
+      {updateMutation.isError && (
+        <Alert>
+          {getApiErrorMessage(updateMutation.error, 'Unable to update the tenant.')}
+        </Alert>
+      )}
+      {apiKeysQuery.isError && (
+        <Alert
+          action={
+            <Button variant="ghost" size="sm" onClick={() => apiKeysQuery.refetch()}>
+              Retry
+            </Button>
+          }
+        >
+          {getApiErrorMessage(apiKeysQuery.error, 'Unable to load this tenant’s API keys.')}
+        </Alert>
+      )}
       {/* Header */}
       <div className="flex items-center gap-4">
         <button
@@ -216,8 +236,21 @@ export function TenantDetailPage() {
       </div>
 
       {/* Quota Modal */}
-      <Modal open={showQuotaModal} onClose={() => setShowQuotaModal(false)} title="Update Storage Quota" size="sm">
+      <Modal
+        open={showQuotaModal}
+        onClose={() => {
+          setShowQuotaModal(false);
+          updateMutation.reset();
+        }}
+        title="Update Storage Quota"
+        size="sm"
+      >
         <div className="space-y-3">
+          {updateMutation.isError && (
+            <Alert>
+              {getApiErrorMessage(updateMutation.error, 'Unable to update the storage quota.')}
+            </Alert>
+          )}
           <p className="text-sm text-gray-500">
             Current: <span className="font-medium text-gray-900">{formatFileSize(tenant.storage_quota)}</span>
           </p>
@@ -261,7 +294,20 @@ export function TenantDetailPage() {
       </Modal>
 
       {/* Toggle Active Modal */}
-      <Modal open={showToggleModal} onClose={() => setShowToggleModal(false)} title={tenant.is_active ? 'Disable Tenant' : 'Enable Tenant'} size="sm">
+      <Modal
+        open={showToggleModal}
+        onClose={() => {
+          setShowToggleModal(false);
+          updateMutation.reset();
+        }}
+        title={tenant.is_active ? 'Disable Tenant' : 'Enable Tenant'}
+        size="sm"
+      >
+        {updateMutation.isError && (
+          <Alert className="mb-4">
+            {getApiErrorMessage(updateMutation.error, 'Unable to update the tenant status.')}
+          </Alert>
+        )}
         <p className="text-sm text-gray-600 mb-4">
           {tenant.is_active
             ? `Disabling "${tenant.name}" will prevent all users from accessing files and uploading. This action can be reversed.`

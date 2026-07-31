@@ -3,6 +3,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.tenants.permissions import IsTenantAdmin
+
 from .models import TenantAPIKey
 from .serializers import APIKeyCreateSerializer, APIKeyListSerializer, APIKeyResponseSerializer
 
@@ -13,7 +15,7 @@ class APIKeyListCreateView(APIView):
     POST /api/apikeys/  – create a new key
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsTenantAdmin]
 
     def get(self, request):
         tenant = request.user.tenant
@@ -52,7 +54,7 @@ class APIKeyListCreateView(APIView):
 class APIKeyDeleteView(APIView):
     """DELETE /api/apikeys/{id}/ – revoke an API key."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsTenantAdmin]
 
     def delete(self, request, prefix):
         tenant = request.user.tenant

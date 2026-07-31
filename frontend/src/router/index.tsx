@@ -46,10 +46,27 @@ function AdminRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-function GuestRoute({ children }: { children: ReactNode }) {
-  const token = useAuthStore.getState().accessToken;
-  if (token) {
+function TenantRoute({ children, adminOnly = false }: { children: ReactNode; adminOnly?: boolean }) {
+  const { accessToken, user } = useAuthStore.getState();
+  if (!accessToken) {
+    return <Navigate to="/login" replace />;
+  }
+  // Older saved sessions may not have the tenant status field. Treat an
+  // omitted status as active and let the API enforce the authoritative value;
+  // an explicitly inactive or missing tenant still cannot enter the workspace.
+  if (!user?.tenant || user.tenant.is_active === false) {
+    return <Navigate to={user?.is_superuser ? '/admin' : '/'} replace />;
+  }
+  if (adminOnly && user.role !== 'admin') {
     return <Navigate to="/files" replace />;
+  }
+  return <>{children}</>;
+}
+
+function GuestRoute({ children }: { children: ReactNode }) {
+  const { accessToken: token, user } = useAuthStore.getState();
+  if (token) {
+    return <Navigate to={user?.is_superuser && !user.tenant ? '/admin' : '/files'} replace />;
   }
   return <>{children}</>;
 }
@@ -78,9 +95,9 @@ export const router = createBrowserRouter([
   {
     path: '/office/:fileId',
     element: (
-      <ProtectedRoute>
+      <TenantRoute>
         <SuspenseWrapper><OfficeEditorPage /></SuspenseWrapper>
-      </ProtectedRoute>
+      </TenantRoute>
     ),
   },
   {
@@ -91,10 +108,10 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { path: 'files', element: <SuspenseWrapper><FileBrowserPage /></SuspenseWrapper> },
-      { path: 'trash', element: <SuspenseWrapper><TrashPage /></SuspenseWrapper> },
-      { path: 'dashboard', element: <SuspenseWrapper><DashboardPage /></SuspenseWrapper> },
-      { path: 'api-keys', element: <SuspenseWrapper><ApiKeysPage /></SuspenseWrapper> },
+      { path: 'files', element: <TenantRoute><SuspenseWrapper><FileBrowserPage /></SuspenseWrapper></TenantRoute> },
+      { path: 'trash', element: <TenantRoute><SuspenseWrapper><TrashPage /></SuspenseWrapper></TenantRoute> },
+      { path: 'dashboard', element: <AdminRoute><SuspenseWrapper><DashboardPage /></SuspenseWrapper></AdminRoute> },
+      { path: 'api-keys', element: <TenantRoute adminOnly><SuspenseWrapper><ApiKeysPage /></SuspenseWrapper></TenantRoute> },
       {
         path: 'admin',
         element: (

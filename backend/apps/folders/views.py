@@ -4,15 +4,21 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.api_keys.permissions import HasTenantAPIKey
+from apps.tenants.services import adjust_storage_used
 
 from .models import Folder
 from .serializers import FolderCreateSerializer, FolderDetailSerializer, FolderSerializer
 
 
 def _get_tenant(request):
-    if hasattr(request, "tenant"):
+    if hasattr(request, "tenant") and request.tenant.is_active:
         return request.tenant
-    if request.user and request.user.is_authenticated and request.user.tenant:
+    if (
+        request.user
+        and request.user.is_authenticated
+        and request.user.tenant
+        and request.user.tenant.is_active
+    ):
         return request.user.tenant
     return None
 
@@ -114,9 +120,30 @@ class FolderDetailView(APIView):
             return Response({"detail": "Folder not found."}, status=status.HTTP_404_NOT_FOUND)
 
         name = request.data.get("name")
-        if name:
-            folder.name = name
-            folder.save(update_fields=["name", "updated_at"])
+        if not isinstance(name, str) or not name.strip():
+            return Response(
+                {"detail": "Folder name is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        name = name.strip()
+        if len(name) > 255:
+            return Response(
+                {"detail": "Folder name must be 255 characters or fewer."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if Folder.objects.filter(
+            tenant=tenant,
+            parent=folder.parent,
+            name=name,
+        ).exclude(id=folder.id).exists():
+            return Response(
+                {"detail": "A folder with this name already exists in this location."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        folder.name = name
+        folder.save(update_fields=["name", "updated_at"])
 
         return Response(FolderSerializer(folder).data)
 
@@ -130,7 +157,9 @@ class FolderDetailView(APIView):
             return Response({"detail": "Folder not found."}, status=status.HTTP_404_NOT_FOUND)
 
         # Soft-delete all files in this folder tree
-        _soft_delete_folder_files(folder, tenant)
+        total_freed = _soft_delete_folder_files(folder, tenant)
+        if total_freed:
+            adjust_storage_used(tenant, -total_freed)
 
         folder.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -146,9 +175,5 @@ def _soft_delete_folder_files(folder, tenant):
 
     for child in folder.children.all():
         total_freed += _soft_delete_folder_files(child, tenant)
-
-    if total_freed:
-        tenant.storage_used = max(0, tenant.storage_used - total_freed)
-        tenant.save(update_fields=["storage_used"])
 
     return total_freed

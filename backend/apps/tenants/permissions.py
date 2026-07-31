@@ -22,5 +22,7 @@ class IsTenantAdmin(permissions.BasePermission):
         return (
             request.user
             and request.user.is_authenticated
+            and request.user.tenant
+            and request.user.tenant.is_active
             and request.user.role == "admin"
         )

@@ -209,6 +209,7 @@ export interface ApiKey {
 
 export interface ApiKeyCreateResponse {
   id: string;
+  prefix: string;
   name: string;
   key: string;
   permissions: string[];

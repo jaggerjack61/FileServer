@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
@@ -33,9 +33,10 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
-import { cn, getFilePreviewKind, getOfficeEditorKind, isArchiveFile, isEditableTextFile } from '@/lib/utils';
+import { Alert } from '@/components/ui/Alert';
+import { getFilePreviewKind, getOfficeEditorKind, isArchiveFile, isEditableTextFile } from '@/lib/utils';
+import { getApiErrorMessage } from '@/lib/errors';
 import type { FileItem, Folder, OfficeContent } from '@/types';
-import { AxiosError } from 'axios';
 
 type ViewMode = 'grid' | 'table';
 
@@ -52,21 +53,6 @@ interface ActionFeedback {
   message: string;
 }
 
-function getApiErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof AxiosError) {
-    if (typeof error.response?.data === 'string') {
-      return error.response.data;
-    }
-
-    const detail = (error.response?.data as { detail?: string } | undefined)?.detail;
-    if (typeof detail === 'string' && detail.trim()) {
-      return detail;
-    }
-  }
-
-  return fallback;
-}
-
 export function FileBrowserPage() {
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
@@ -77,6 +63,7 @@ export function FileBrowserPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [showUpload, setShowUpload] = useState(false);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [createFolderError, setCreateFolderError] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewText, setPreviewText] = useState<string | null>(null);
@@ -125,8 +112,8 @@ export function FileBrowserPage() {
   const compressMutation = useCompressFiles();
   const extractMutation = useExtractFile();
 
-  const files = filesQuery.data?.results ?? [];
-  const folders = foldersQuery.data?.results ?? [];
+  const files = useMemo(() => filesQuery.data?.results ?? [], [filesQuery.data]);
+  const folders = useMemo(() => foldersQuery.data?.results ?? [], [foldersQuery.data]);
   const currentFolderId = folderId ?? null;
   const selectedFileItems = files.filter((file) => selectedFiles.has(file.id));
   const selectedArchive =
@@ -321,7 +308,15 @@ export function FileBrowserPage() {
   const uploadFilesToFolder = useCallback(
     (uploadFiles: File[], targetFolderId?: string) => {
       uploadFiles.forEach((file) => {
-        uploadMutation.mutate({ file, folderId: targetFolderId });
+        uploadMutation.mutate(
+          { file, folderId: targetFolderId },
+          {
+            onError: (error) => setFeedback({
+              tone: 'error',
+              message: getApiErrorMessage(error, `Unable to upload ${file.name}.`),
+            }),
+          }
+        );
       });
     },
     [uploadMutation]
@@ -378,9 +373,18 @@ export function FileBrowserPage() {
   );
 
   const handleCreateFolder = (name: string) => {
+    setCreateFolderError(null);
     createFolderMutation.mutate(
       { name, parent: folderId },
-      { onSuccess: () => setShowCreateFolder(false) }
+      {
+        onSuccess: () => {
+          setShowCreateFolder(false);
+          setFeedback({ tone: 'success', message: `Created folder ${name}.` });
+        },
+        onError: (error) => {
+          setCreateFolderError(getApiErrorMessage(error, 'Unable to create the folder.'));
+        },
+      }
     );
   };
 
@@ -389,15 +393,22 @@ export function FileBrowserPage() {
   };
 
   const handleDownload = async (file: FileItem) => {
-    const blob = await fileService.download(file.id);
-    const objectUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = objectUrl;
-    a.download = file.original_filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(objectUrl);
+    try {
+      const blob = await fileService.download(file.id);
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = file.original_filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      setFeedback({
+        tone: 'error',
+        message: getApiErrorMessage(error, `Unable to download ${file.original_filename}.`),
+      });
+    }
   };
 
   const closePreview = useCallback(() => {
@@ -517,6 +528,10 @@ export function FileBrowserPage() {
     if (deleteFile) {
       deleteFileMutation.mutate(deleteFile.id, {
         onSuccess: () => setDeleteFile(null),
+        onError: (error) => setFeedback({
+          tone: 'error',
+          message: getApiErrorMessage(error, 'Unable to delete the file.'),
+        }),
       });
     }
   };
@@ -525,7 +540,13 @@ export function FileBrowserPage() {
     if (renameFile && newName.trim()) {
       renameFileMutation.mutate(
         { id: renameFile.id, filename: newName.trim() },
-        { onSuccess: () => { setRenameFile(null); setNewName(''); } }
+        {
+          onSuccess: () => { setRenameFile(null); setNewName(''); },
+          onError: (error) => setFeedback({
+            tone: 'error',
+            message: getApiErrorMessage(error, 'Unable to rename the file.'),
+          }),
+        }
       );
     }
   };
@@ -534,6 +555,10 @@ export function FileBrowserPage() {
     if (deleteFolder) {
       deleteFolderMutation.mutate(deleteFolder.id, {
         onSuccess: () => setDeleteFolder(null),
+        onError: (error) => setFeedback({
+          tone: 'error',
+          message: getApiErrorMessage(error, 'Unable to delete the folder.'),
+        }),
       });
     }
   };
@@ -542,7 +567,13 @@ export function FileBrowserPage() {
     if (renameFolder && newName.trim()) {
       updateFolderMutation.mutate(
         { id: renameFolder.id, name: newName.trim() },
-        { onSuccess: () => { setRenameFolder(null); setNewName(''); } }
+        {
+          onSuccess: () => { setRenameFolder(null); setNewName(''); },
+          onError: (error) => setFeedback({
+            tone: 'error',
+            message: getApiErrorMessage(error, 'Unable to rename the folder.'),
+          }),
+        }
       );
     }
   };
@@ -551,7 +582,13 @@ export function FileBrowserPage() {
     if (moveFile) {
       moveFileMutation.mutate(
         { id: moveFile.id, folderId: targetFolderId },
-        { onSuccess: () => setMoveFile(null) }
+        {
+          onSuccess: () => setMoveFile(null),
+          onError: (error) => setFeedback({
+            tone: 'error',
+            message: getApiErrorMessage(error, 'Unable to move the file.'),
+          }),
+        }
       );
     }
   };
@@ -563,6 +600,10 @@ export function FileBrowserPage() {
         setSelectedFiles(new Set());
         setShowBulkDelete(false);
       },
+      onError: (error) => setFeedback({
+        tone: 'error',
+        message: getApiErrorMessage(error, 'Unable to delete the selected files.'),
+      }),
     });
   };
 
@@ -575,6 +616,10 @@ export function FileBrowserPage() {
           setSelectedFiles(new Set());
           setShowBulkMove(false);
         },
+        onError: (error) => setFeedback({
+          tone: 'error',
+          message: getApiErrorMessage(error, 'Unable to move the selected files.'),
+        }),
       }
     );
   };
@@ -617,6 +662,37 @@ export function FileBrowserPage() {
       )}
       {/* Breadcrumbs */}
       <Breadcrumbs items={breadcrumbs} />
+
+      {(filesQuery.isError || foldersQuery.isError || (folderId && folderDetailQuery.isError)) && (
+        <Alert
+          action={
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                filesQuery.refetch();
+                foldersQuery.refetch();
+                if (folderId) folderDetailQuery.refetch();
+              }}
+            >
+              Retry
+            </Button>
+          }
+        >
+          {getApiErrorMessage(
+            filesQuery.error || foldersQuery.error || folderDetailQuery.error,
+            'Unable to load files and folders.'
+          )}
+        </Alert>
+      )}
+
+      {feedback && (
+        <div className="fixed right-4 top-4 z-[60] max-w-md">
+          <Alert tone={feedback.tone === 'neutral' ? 'info' : feedback.tone}>
+            {feedback.message}
+          </Alert>
+        </div>
+      )}
 
       {/* Toolbar */}
       <FileToolbar
@@ -783,9 +859,13 @@ export function FileBrowserPage() {
       {/* Create Folder Modal */}
       <CreateFolderModal
         open={showCreateFolder}
-        onClose={() => setShowCreateFolder(false)}
+        onClose={() => {
+          setShowCreateFolder(false);
+          setCreateFolderError(null);
+        }}
         onSubmit={handleCreateFolder}
         loading={createFolderMutation.isPending}
+        serverError={createFolderError}
       />
 
       {/* Preview Modal */}

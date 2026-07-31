@@ -77,14 +77,30 @@ copy .env.example .env   # Windows
 # Run migrations
 python manage.py migrate
 
-# Create superuser
-python manage.py createsuperuser
+# Seed local accounts for every supported account type
+python manage.py seed_accounts
 
 # Start server
 python manage.py runserver
 ```
 
 The API will be available at `http://localhost:8000/api/`.
+
+### Seeded development accounts
+
+Running `python manage.py seed_accounts` creates or updates a demo tenant and
+all supported account types:
+
+| Account type | Email | Default password |
+|---|---|---|
+| Platform super-admin | `admin@fileserver.local` | `FileServer123!` |
+| Tenant owner/admin | `tenant-admin@fileserver.local` | `FileServer123!` |
+| Tenant member/user | `user@fileserver.local` | `FileServer123!` |
+
+The command is idempotent. Override the shared password with
+`python manage.py seed_accounts --password "your-password"` or the
+`SEED_ACCOUNT_PASSWORD` environment variable. The defaults are for local
+development only.
 
 ### Frontend Setup
 

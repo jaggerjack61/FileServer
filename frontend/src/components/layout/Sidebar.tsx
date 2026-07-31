@@ -17,12 +17,12 @@ import { cn } from '@/lib/utils';
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  onNavigate?: () => void;
 }
 
-const navItems = [
+const tenantNavItems = [
   { to: '/files', label: 'My Files', icon: FolderIcon },
   { to: '/trash', label: 'Trash', icon: TrashIcon },
-  { to: '/api-keys', label: 'API Keys', icon: KeyIcon },
 ];
 
 const adminItems = [
@@ -32,14 +32,19 @@ const adminItems = [
   { to: '/admin/activity', label: 'Activity Log', icon: ClockIcon },
 ];
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
   const user = useAuthStore((s) => s.user);
   const isAdmin = user?.is_superuser === true;
+  // Older sessions may not have the status field yet. The API remains the
+  // authority for inactive tenants; the sidebar should still render for a
+  // valid tenant session while that data is refreshed.
+  const hasActiveTenant = Boolean(user?.tenant && user.tenant.is_active !== false);
+  const canManageApiKeys = hasActiveTenant && user?.role === 'admin';
 
   return (
     <aside
       className={cn(
-        'flex flex-col border-r border-gray-200 bg-white transition-all duration-200 dark:border-white/10 dark:bg-slate-900/80',
+        'flex h-full flex-col border-r border-gray-200 bg-white transition-all duration-200 dark:border-white/10 dark:bg-slate-900/80',
         collapsed ? 'w-16' : 'w-64'
       )}
     >
@@ -65,10 +70,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-        {navItems.map((item) => (
+        {hasActiveTenant && tenantNavItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
+            onClick={onNavigate}
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
@@ -82,6 +88,23 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             {!collapsed && <span>{item.label}</span>}
           </NavLink>
         ))}
+        {canManageApiKeys && (
+          <NavLink
+            to="/api-keys"
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                isActive
+                  ? 'bg-blue-50 text-blue-700 dark:bg-cyan-300/10 dark:text-cyan-300'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white'
+              )
+            }
+          >
+            <KeyIcon className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>API Keys</span>}
+          </NavLink>
+        )}
 
         {isAdmin && (
           <>
@@ -97,6 +120,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               <NavLink
                 key={item.to}
                 to={item.to}
+                onClick={onNavigate}
                 end={item.to === '/admin'}
                 className={({ isActive }) =>
                   cn(

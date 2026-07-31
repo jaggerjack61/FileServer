@@ -7,7 +7,9 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Alert } from '@/components/ui/Alert';
 import { formatRelativeDate } from '@/lib/utils';
+import { getApiErrorMessage } from '@/lib/errors';
 import {
   KeyIcon,
   PlusIcon,
@@ -31,6 +33,7 @@ export function ApiKeysPage() {
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [revokeId, setRevokeId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const apiKeysQuery = useApiKeys();
   const createMutation = useCreateApiKey();
@@ -39,6 +42,7 @@ export function ApiKeysPage() {
   const keys = apiKeysQuery.data?.results ?? [];
 
   const handleCreate = () => {
+    setActionError(null);
     createMutation.mutate(
       { name: newKeyName, permissions: selectedPermissions },
       {
@@ -48,6 +52,9 @@ export function ApiKeysPage() {
           setNewKeyName('');
           setSelectedPermissions([]);
         },
+        onError: (error) => {
+          setActionError(getApiErrorMessage(error, 'Unable to create the API key.'));
+        },
       }
     );
   };
@@ -55,16 +62,27 @@ export function ApiKeysPage() {
   const handleRevoke = () => {
     if (revokeId) {
       revokeMutation.mutate(revokeId, {
-        onSuccess: () => setRevokeId(null),
+        onSuccess: () => {
+          setRevokeId(null);
+          setActionError(null);
+        },
+        onError: (error) => {
+          setActionError(getApiErrorMessage(error, 'Unable to revoke the API key.'));
+        },
       });
     }
   };
 
-  const handleCopyKey = () => {
+  const handleCopyKey = async () => {
     if (createdKey) {
-      navigator.clipboard.writeText(createdKey);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      try {
+        await navigator.clipboard.writeText(createdKey);
+        setCopied(true);
+        setActionError(null);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        setActionError('Clipboard access was blocked. Select and copy the key manually.');
+      }
     }
   };
 
@@ -93,7 +111,21 @@ export function ApiKeysPage() {
         </Button>
       </div>
 
-      {keys.length === 0 ? (
+      {apiKeysQuery.isError && (
+        <Alert
+          action={
+            <Button variant="ghost" size="sm" onClick={() => apiKeysQuery.refetch()}>
+              Retry
+            </Button>
+          }
+        >
+          {getApiErrorMessage(apiKeysQuery.error, 'Unable to load API keys.')}
+        </Alert>
+      )}
+
+      {actionError && <Alert>{actionError}</Alert>}
+
+      {apiKeysQuery.isError ? null : keys.length === 0 ? (
         <EmptyState
           icon={<KeyIcon className="h-16 w-16" />}
           title="No API keys"
@@ -189,10 +221,12 @@ export function ApiKeysPage() {
           setShowCreate(false);
           setNewKeyName('');
           setSelectedPermissions([]);
+          setActionError(null);
         }}
         title="Create API Key"
       >
         <div className="space-y-4">
+          {actionError && <Alert>{actionError}</Alert>}
           <Input
             label="Key name"
             placeholder="e.g., CI/CD Pipeline"
@@ -230,6 +264,7 @@ export function ApiKeysPage() {
                 setShowCreate(false);
                 setNewKeyName('');
                 setSelectedPermissions([]);
+                setActionError(null);
               }}
             >
               Cancel
@@ -291,6 +326,7 @@ export function ApiKeysPage() {
         title="Revoke API Key"
         size="sm"
       >
+        {actionError && <Alert className="mb-4">{actionError}</Alert>}
         <p className="text-sm text-gray-600 mb-4 dark:text-slate-400">
           Are you sure you want to revoke this API key? Any applications using this key
           will lose access immediately.

@@ -24,7 +24,14 @@ class TenantBriefSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Tenant
-        fields = ["id", "name", "slug"]
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "storage_quota",
+            "storage_used",
+            "is_active",
+        ]
 
 
 class TenantDetailSerializer(serializers.ModelSerializer):

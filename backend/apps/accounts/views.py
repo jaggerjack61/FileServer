@@ -61,6 +61,16 @@ class RefreshTokenView(APIView):
             )
         try:
             token = RefreshToken(refresh_token)
+            from .models import User
+
+            try:
+                user = User.objects.select_related("tenant").get(id=token["user_id"])
+            except User.DoesNotExist:
+                raise TokenError("User no longer exists.")
+            if not user.is_active:
+                raise TokenError("Account is disabled.")
+            if user.tenant and not user.tenant.is_active:
+                raise TokenError("Organization is disabled.")
             return Response(
                 {
                     "access": str(token.access_token),

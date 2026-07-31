@@ -25,7 +25,7 @@ export function useLogin() {
     onSuccess: (data) => {
       login(data.user, data.access, data.refresh);
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      navigate('/files');
+      navigate(data.user.is_superuser && !data.user.tenant ? '/admin' : '/files');
     },
   });
 }

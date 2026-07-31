@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeftIcon,
   ArrowDownTrayIcon,
@@ -26,6 +27,7 @@ const suiteThemes: Record<OfficeEditorKind, { bg: string; accent: string; icon: 
 export function OfficeEditorPage() {
   const { fileId } = useParams<{ fileId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [file, setFile] = useState<FileItem | null>(null);
   const [content, setContent] = useState<OfficeContent | null>(null);
@@ -79,13 +81,14 @@ export function OfficeEditorPage() {
       const updatedFile = await fileService.updateOfficeContent(fileId, draft);
       setFile(updatedFile);
       setContent(JSON.parse(JSON.stringify(draft)) as OfficeContent);
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       setSaveState('saved');
       setTimeout(() => setSaveState('idle'), 2000);
     } catch {
       setSaveState('error');
       setTimeout(() => setSaveState('idle'), 3000);
     }
-  }, [fileId, draft]);
+  }, [fileId, draft, queryClient]);
 
   const handleDownload = useCallback(async () => {
     if (!file) return;

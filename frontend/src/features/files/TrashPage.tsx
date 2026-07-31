@@ -1,12 +1,13 @@
-import { useState, useCallback } from 'react';
-import { useTrashFiles, useRestoreFile, useDeleteFile } from '@/hooks/useFiles';
+import { useState, useCallback, useMemo } from 'react';
+import { useTrashFiles, useRestoreFile } from '@/hooks/useFiles';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Alert } from '@/components/ui/Alert';
 import { formatFileSize, formatRelativeDate, getFileIcon, getFileColorClass } from '@/lib/utils';
+import { getApiErrorMessage } from '@/lib/errors';
 import {
   TrashIcon,
   ArrowUturnLeftIcon,
@@ -34,11 +35,13 @@ const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>
 export function TrashPage() {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [restoreConfirm, setRestoreConfirm] = useState<FileItem | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [bulkRestoring, setBulkRestoring] = useState(false);
 
   const trashQuery = useTrashFiles();
   const restoreMutation = useRestoreFile();
 
-  const files = trashQuery.data?.results ?? [];
+  const files = useMemo(() => trashQuery.data?.results ?? [], [trashQuery.data]);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedFiles(prev => {
@@ -60,6 +63,7 @@ export function TrashPage() {
   const handleRestore = (file: FileItem) => {
     restoreMutation.mutate(file.id, {
       onSuccess: () => {
+        setActionError(null);
         setRestoreConfirm(null);
         setSelectedFiles(prev => {
           const next = new Set(prev);
@@ -67,14 +71,29 @@ export function TrashPage() {
           return next;
         });
       },
+      onError: (error) => {
+        setActionError(getApiErrorMessage(error, 'Unable to restore the file.'));
+      },
     });
   };
 
-  const handleBulkRestore = () => {
-    selectedFiles.forEach(id => {
-      restoreMutation.mutate(id);
-    });
-    setSelectedFiles(new Set());
+  const handleBulkRestore = async () => {
+    const ids = Array.from(selectedFiles);
+    setBulkRestoring(true);
+    setActionError(null);
+    const results = await Promise.allSettled(ids.map((id) => restoreMutation.mutateAsync(id)));
+    const failedIds = ids.filter((_, index) => results[index].status === 'rejected');
+    setSelectedFiles(new Set(failedIds));
+    if (failedIds.length > 0) {
+      const firstFailure = results.find((result) => result.status === 'rejected');
+      setActionError(
+        getApiErrorMessage(
+          firstFailure?.status === 'rejected' ? firstFailure.reason : null,
+          `Unable to restore ${failedIds.length} selected file${failedIds.length === 1 ? '' : 's'}.`
+        )
+      );
+    }
+    setBulkRestoring(false);
   };
 
   if (trashQuery.isLoading) {
@@ -93,7 +112,7 @@ export function TrashPage() {
         {selectedFiles.size > 0 && (
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500">{selectedFiles.size} selected</span>
-            <Button size="sm" onClick={handleBulkRestore} loading={restoreMutation.isPending}>
+            <Button size="sm" onClick={handleBulkRestore} loading={bulkRestoring}>
               <ArrowUturnLeftIcon className="h-4 w-4" />
               Restore Selected
             </Button>
@@ -101,7 +120,21 @@ export function TrashPage() {
         )}
       </div>
 
-      {files.length === 0 ? (
+      {trashQuery.isError && (
+        <Alert
+          action={
+            <Button variant="ghost" size="sm" onClick={() => trashQuery.refetch()}>
+              Retry
+            </Button>
+          }
+        >
+          {getApiErrorMessage(trashQuery.error, 'Unable to load trash.')}
+        </Alert>
+      )}
+
+      {actionError && <Alert>{actionError}</Alert>}
+
+      {trashQuery.isError ? null : files.length === 0 ? (
         <EmptyState
           icon={<TrashIcon className="h-12 w-12" />}
           title="Trash is empty"

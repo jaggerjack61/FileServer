@@ -14,24 +14,45 @@ class HasTenantAPIKey(BaseHasAPIKey):
     model = TenantAPIKey
 
     def has_permission(self, request, view):
-        key_valid = super().has_permission(request, view)
-        if key_valid:
-            # Attach tenant to request for downstream use
-            from django.utils import timezone
+        raw_key = self.get_key(request)
+        if not raw_key:
+            return False
 
-            key = self._get_key_object(request)
-            if key:
-                request.tenant = key.tenant
-                key.last_used = timezone.now()
-                key.save(update_fields=["last_used"])
-        return key_valid
+        try:
+            api_key = TenantAPIKey.objects.get_from_key(raw_key)
+        except TenantAPIKey.DoesNotExist:
+            return False
 
-    def _get_key_object(self, request):
-        """Retrieve the TenantAPIKey instance from the request header."""
-        key = self.get_key(request)
-        if key:
-            try:
-                return TenantAPIKey.objects.get_from_key(key)
-            except TenantAPIKey.DoesNotExist:
-                return None
-        return None
+        if not api_key.tenant.is_active or not self._has_scope(api_key, request):
+            return False
+
+        from django.utils import timezone
+
+        request.tenant = api_key.tenant
+        request.api_key = api_key
+        api_key.last_used = timezone.now()
+        api_key.save(update_fields=["last_used"])
+        return True
+
+    @staticmethod
+    def _has_scope(api_key, request):
+        """Enforce broad and resource-specific permissions for API-key calls."""
+        permissions = set(api_key.permissions or [])
+        if "admin" in permissions:
+            return True
+
+        if request.path.startswith("/api/files/"):
+            resource = "files"
+        elif request.path.startswith("/api/folders/"):
+            resource = "folders"
+        else:
+            return False
+
+        if request.method in ("GET", "HEAD", "OPTIONS"):
+            action = "read"
+        elif request.method == "DELETE":
+            action = "delete"
+        else:
+            action = "write"
+
+        return action in permissions or f"{resource}:{action}" in permissions

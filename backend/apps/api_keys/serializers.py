@@ -25,7 +25,7 @@ class APIKeyResponseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TenantAPIKey
-        fields = ["prefix", "name", "key", "permissions", "created"]
+        fields = ["id", "prefix", "name", "key", "permissions", "created"]
         read_only_fields = fields
 
 
@@ -34,5 +34,5 @@ class APIKeyListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TenantAPIKey
-        fields = ["prefix", "name", "permissions", "created", "last_used", "revoked"]
+        fields = ["id", "prefix", "name", "permissions", "created", "last_used", "revoked"]
         read_only_fields = fields

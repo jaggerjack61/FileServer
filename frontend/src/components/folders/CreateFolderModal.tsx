@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -8,11 +8,19 @@ interface CreateFolderModalProps {
   onClose: () => void;
   onSubmit: (name: string) => void;
   loading?: boolean;
+  serverError?: string | null;
 }
 
-export function CreateFolderModal({ open, onClose, onSubmit, loading }: CreateFolderModalProps) {
+export function CreateFolderModal({ open, onClose, onSubmit, loading, serverError }: CreateFolderModalProps) {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!open) {
+      setName('');
+      setError('');
+    }
+  }, [open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,8 +29,6 @@ export function CreateFolderModal({ open, onClose, onSubmit, loading }: CreateFo
       return;
     }
     onSubmit(name.trim());
-    setName('');
-    setError('');
   };
 
   const handleClose = () => {
@@ -42,7 +48,7 @@ export function CreateFolderModal({ open, onClose, onSubmit, loading }: CreateFo
             setName(e.target.value);
             setError('');
           }}
-          error={error}
+          error={error || serverError || undefined}
           autoFocus
         />
         <div className="flex justify-end gap-2">

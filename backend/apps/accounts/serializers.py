@@ -82,6 +82,8 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("Invalid email or password.")
         if not user.is_active:
             raise serializers.ValidationError("Account is disabled.")
+        if user.tenant and not user.tenant.is_active:
+            raise serializers.ValidationError("Your organization is disabled.")
         attrs["user"] = user
         return attrs
 

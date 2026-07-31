@@ -19,6 +19,7 @@ from rest_framework.views import APIView
 from apps.api_keys.permissions import HasTenantAPIKey
 from apps.folders.models import Folder
 from apps.tenants.models import Tenant
+from apps.tenants.services import adjust_storage_used
 
 from .models import File
 from .office import get_office_editor_kind, load_office_content, save_office_content
@@ -40,9 +41,14 @@ logger = logging.getLogger(__name__)
 
 def _get_tenant(request):
     """Return the tenant scoped to the current request (JWT or API‑key)."""
-    if hasattr(request, "tenant"):
+    if hasattr(request, "tenant") and request.tenant.is_active:
         return request.tenant
-    if request.user and request.user.is_authenticated and request.user.tenant:
+    if (
+        request.user
+        and request.user.is_authenticated
+        and request.user.tenant
+        and request.user.tenant.is_active
+    ):
         return request.user.tenant
     return None
 
@@ -101,9 +107,8 @@ class FileUploadView(APIView):
             parent_folder=parent_folder,
         )
 
-        # Update tenant storage
-        tenant.storage_used += uploaded_file.size
-        tenant.save(update_fields=["storage_used"])
+        # Update the denormalized counter; reads never need to sum file rows.
+        adjust_storage_used(tenant, uploaded_file.size)
 
         start_thumbnail_generation_thread(str(file_obj.id))
 
@@ -179,9 +184,7 @@ class FileDetailView(APIView):
         file_obj.is_deleted = True
         file_obj.save(update_fields=["is_deleted", "updated_at"])
 
-        # Update tenant storage
-        tenant.storage_used = max(0, tenant.storage_used - file_obj.file_size)
-        tenant.save(update_fields=["storage_used"])
+        adjust_storage_used(tenant, -file_obj.file_size)
 
         logger.info("File soft-deleted: %s by user %s", file_obj.filename, request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -245,8 +248,7 @@ class FileContentUpdateView(APIView):
         storage = get_storage_service()
         new_size = storage.update_file(file_obj.storage_path, encoded_content)
         if new_size != file_obj.file_size:
-            tenant.storage_used = max(0, tenant.storage_used + (new_size - file_obj.file_size))
-            tenant.save(update_fields=["storage_used"])
+            adjust_storage_used(tenant, new_size - file_obj.file_size)
 
         file_obj.file_size = new_size
         file_obj.save(update_fields=["file_size", "updated_at"])
@@ -337,8 +339,7 @@ class FileOfficeContentView(APIView):
 
         new_size = storage.update_file(file_obj.storage_path, updated_bytes)
         if new_size != file_obj.file_size:
-            tenant.storage_used = max(0, tenant.storage_used + (new_size - file_obj.file_size))
-            tenant.save(update_fields=["storage_used"])
+            adjust_storage_used(tenant, new_size - file_obj.file_size)
 
         file_obj.file_size = new_size
         file_obj.save(update_fields=["file_size", "updated_at"])
@@ -596,8 +597,7 @@ class TrashRestoreView(APIView):
         file_obj.is_deleted = False
         file_obj.save(update_fields=["is_deleted", "updated_at"])
 
-        tenant.storage_used += file_obj.file_size
-        tenant.save(update_fields=["storage_used"])
+        adjust_storage_used(tenant, file_obj.file_size)
 
         logger.info("File restored from trash: %s by user %s", file_obj.filename, request.user)
         return Response(FileSerializer(file_obj, context={"request": request}).data)
@@ -622,8 +622,7 @@ class BulkDeleteView(APIView):
         count = files.update(is_deleted=True)
 
         if total_freed:
-            tenant.storage_used = max(0, tenant.storage_used - total_freed)
-            tenant.save(update_fields=["storage_used"])
+            adjust_storage_used(tenant, -total_freed)
 
         logger.info("Bulk deleted %d files by user %s", count, request.user)
         return Response({"deleted": count})
@@ -721,8 +720,7 @@ class BulkCopyView(APIView):
             copied_size += file_obj.file_size
 
         if copied_size:
-            tenant.storage_used += copied_size
-            tenant.save(update_fields=["storage_used"])
+            adjust_storage_used(tenant, copied_size)
 
         logger.info("Bulk copied %d files to folder %s by user %s", copied, folder_id, request.user)
         return Response({"copied": copied})
@@ -805,8 +803,7 @@ class FileCompressView(APIView):
                 parent_folder=target_folder,
             )
 
-            tenant.storage_used += archive_size
-            tenant.save(update_fields=["storage_used"])
+            adjust_storage_used(tenant, archive_size)
 
             logger.info("Compressed %d files into %s by user %s", len(files), archive_name, request.user)
             return Response(
@@ -940,8 +937,7 @@ class FileExtractView(APIView):
                     root_folder.delete()
                     return Response({"detail": "Archive does not contain extractable files."}, status=status.HTTP_400_BAD_REQUEST)
 
-                tenant.storage_used += extracted_size
-                tenant.save(update_fields=["storage_used"])
+                adjust_storage_used(tenant, extracted_size)
 
                 logger.info("Extracted archive %s into folder %s by user %s", archive_file.id, root_folder.id, request.user)
                 return Response(
