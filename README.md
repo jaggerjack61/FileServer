@@ -1,415 +1,126 @@
-# Enterprise File Storage Platform
+<div align="center">
 
-A multi-tenant enterprise file storage service with a Google Drive–inspired web client, built with Django REST Framework and React.
+# FileServer
 
-## Tech Stack
+**Your files. Your workspace. Your infrastructure.**
 
-| Layer | Technology |
-|-------|-----------|
-| Backend | Python 3.12+, Django 5, Django REST Framework |
-| Auth | JWT (simplejwt), API Keys (djangorestframework-api-key) |
-| Database | SQLite (dev) / PostgreSQL (prod) |
-| Storage | Local filesystem (dev) / S3-compatible (prod) |
-| Frontend | React 18, TypeScript, Vite, TailwindCSS |
-| Office | python-docx, openpyxl, python-pptx (Word, Excel, PowerPoint) |
-| State | Zustand (auth), TanStack Query (server state) |
-| UI | Headless UI, Heroicons, Recharts |
+A self-hosted file workspace with folders, Office document editing, tenant administration, and API access.
 
-## Project Structure
+![MIT](https://img.shields.io/badge/license-MIT-3b82f6)
+![React + TypeScript](https://img.shields.io/badge/frontend-React_%2B_TypeScript-149eca)
+![Django](https://img.shields.io/badge/backend-Django-092e20)
+![Self hosted](https://img.shields.io/badge/deployment-self_hosted-6366f1)
 
-```
-FileServer/
-├── backend/
-│   ├── config/              # Django settings, URLs, WSGI/ASGI
-│   ├── apps/
-│   │   ├── accounts/        # Custom User model, JWT auth
-│   │   ├── tenants/         # Multi-tenant management, admin endpoints
-│   │   ├── files/           # File upload, download, management
-│   │   ├── folders/         # Folder tree management
-│   │   └── api_keys/        # Tenant-scoped API key system
-│   ├── manage.py
-│   ├── requirements.txt
-│   ├── .env                 # Environment config (from .env.example)
-│   └── .env.example         # Template with all available env vars
-├── frontend/
-│   ├── src/
-│   │   ├── components/      # UI, layout, file, and folder components
-│   │   ├── features/        # Page-level components (auth, files, admin)
-│   │   ├── services/        # API service layer
-│   │   ├── hooks/           # TanStack Query hooks
-│   │   ├── stores/          # Zustand auth store
-│   │   ├── types/           # TypeScript interfaces
-│   │   └── lib/             # Axios instance, utilities
-│   ├── package.json
-│   └── vite.config.ts
-└── README.md
-```
+[Features](#features) · [Screenshots](#screenshots) · [Quick start](#quick-start) · [Development](#development)
 
-## Getting Started
+<img src="docs/screenshots/files.jpg" alt="FileServer workspace with folders and a collection of team documents" width="1000">
 
-### Prerequisites
+</div>
 
-- Python 3.12+
-- Node.js 18+
-- npm or yarn
+---
 
-### Backend Setup
+FileServer brings everyday file management and system integrations into one workspace. Browse and organize documents in a familiar web interface, edit supported Office files in place, and give each tenant its own data and storage quota.
 
-```bash
+## Features
+
+| Feature | What it does |
+|---|---|
+| **A familiar file workspace** | Upload with drag and drop, organize folders, search, rename, move, copy, and download. Recover deleted files from the trash. |
+| **Office files in the browser** | View and edit Word documents, Excel workbooks, and PowerPoint presentations, with tables, formatting, and embedded images. |
+| **Tools for larger collections** | Select multiple files for bulk operations, create ZIP archives, and extract archives into folders. |
+| **Separate tenant workspaces** | Tenant owners and members work within tenant-scoped data, with per-tenant storage quotas. |
+| **Integration access** | Tenant-scoped API keys let scripts and other systems work with files and folders. Keys are shown once when created. |
+| **Platform administration** | Manage tenants and their quotas, review storage use, inspect system metrics, and follow file activity. |
+
+## Screenshots
+
+<table align="center" width="100%">
+  <tr>
+    <td width="50%" align="center" valign="top"><img src="docs/screenshots/office.jpg" alt="FileServer Word editor displaying a project handover document" width="560"><br><sub>View and edit Office documents</sub></td>
+    <td width="50%" align="center" valign="top"><img src="docs/screenshots/dashboard.jpg" alt="FileServer dashboard showing storage usage across demo tenants" width="560"><br><sub>Review platform storage and quotas</sub></td>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top"><img src="docs/screenshots/api-keys.jpg" alt="Tenant API key management with named integration keys" width="560"><br><sub>Manage integration access</sub></td>
+    <td width="50%" align="center" valign="top"><img src="docs/screenshots/trash.jpg" alt="FileServer trash with recoverable deleted documents" width="560"><br><sub>Recover deleted files</sub></td>
+  </tr>
+</table>
+
+Screenshots show the application interface with demo data.
+
+## Quick start
+
+**Requirements:** Python 3.12+, Node.js 18+, and npm. The default local database is SQLite.
+
+### 1. Start the API
+
+```sh
 cd backend
-
-# Create virtual environment
-python -m venv venv
-
-# Activate (Windows)
-.\venv\Scripts\Activate.ps1
-
-# Activate (macOS/Linux)
-source venv/bin/activate
-
-# Install dependencies
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-
-# Copy environment config
-copy .env.example .env   # Windows
-# cp .env.example .env   # macOS/Linux
-
-# Run migrations
+cp .env.example .env
 python manage.py migrate
-
-# Seed local accounts for every supported account type
 python manage.py seed_accounts
-
-# Start server
 python manage.py runserver
 ```
 
-The API will be available at `http://localhost:8000/api/`.
+On Windows, create the environment with `py -m venv .venv`, activate it with `.venv\Scripts\Activate.ps1`, and copy the environment file with `Copy-Item .env.example .env`.
 
-### Seeded development accounts
+The API runs at **http://localhost:8000/api/**. `seed_accounts` creates these local development accounts:
 
-Running `python manage.py seed_accounts` creates or updates a demo tenant and
-all supported account types:
-
-| Account type | Email | Default password |
+| Account | Email | Default password |
 |---|---|---|
 | Platform super-admin | `admin@fileserver.local` | `FileServer123!` |
 | Tenant owner/admin | `tenant-admin@fileserver.local` | `FileServer123!` |
-| Tenant member/user | `user@fileserver.local` | `FileServer123!` |
+| Tenant member | `user@fileserver.local` | `FileServer123!` |
 
-The command is idempotent. Override the shared password with
-`python manage.py seed_accounts --password "your-password"` or the
-`SEED_ACCOUNT_PASSWORD` environment variable. The defaults are for local
-development only.
+Set a different seed password with `python manage.py seed_accounts --password "your-password"`. These accounts are for local development.
 
-### Frontend Setup
+### 2. Start the web app
 
-```bash
+In a second terminal:
+
+```sh
 cd frontend
-
-# Install dependencies
-npm install
-
-# Start dev server
+npm ci
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173`.
+Open **http://localhost:5173** and sign in. Tenant accounts enter the file workspace; the platform admin can manage tenants and storage.
 
-## API Reference
+## Configuration
 
-### Authentication
+Copy [backend/.env.example](backend/.env.example) before changing backend settings.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register/` | Register user + create tenant |
-| POST | `/api/auth/login/` | Login → JWT tokens |
-| POST | `/api/auth/refresh/` | Refresh access token |
-| POST | `/api/auth/logout/` | Blacklist refresh token |
-| GET | `/api/auth/me/` | Current user profile |
+| Variable | Purpose |
+|---|---|
+| `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS` | Django secret, development mode, and accepted hosts |
+| `CORS_ALLOWED_ORIGINS` | Browser origins allowed to call the API |
+| `FILE_UPLOAD_MAX_SIZE` | Upload limit in bytes; defaults to 100 MB |
+| `OFFICE_PREVIEW_MAX_FILE_SIZE` | Office parsing limit in bytes; defaults to 20 MB |
 
-### Files
+The frontend development server proxies `/api/` and `/media/` to the local backend. Review the database and storage implementation before changing deployment targets; environment examples alone do not install a PostgreSQL or S3 storage backend.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/files/upload/` | Upload file (multipart/form-data) |
-| GET | `/api/files/` | List files (filterable) |
-| GET | `/api/files/{id}/` | File details |
-| DELETE | `/api/files/{id}/` | Soft delete |
-| PUT | `/api/files/{id}/rename/` | Rename file |
-| PUT | `/api/files/{id}/move/` | Move file to folder |
-| PUT | `/api/files/{id}/content/` | Update text file content |
-| GET | `/api/files/{id}/office-content/` | Load Office document for viewing/editing |
-| PUT | `/api/files/{id}/office-content/` | Save Office document changes |
-| GET | `/api/files/{id}/download/` | Download file |
-| GET | `/api/files/trash/` | List trashed files |
-| POST | `/api/files/trash/{id}/restore/` | Restore from trash |
-| POST | `/api/files/bulk-delete/` | Bulk soft-delete |
-| POST | `/api/files/bulk-move/` | Bulk move to folder |
-| POST | `/api/files/bulk-copy/` | Bulk copy to folder |
-| POST | `/api/files/compress/` | Compress files into a ZIP archive |
-| POST | `/api/files/{id}/extract/` | Extract a ZIP archive |
+## API access
 
-### Folders
+The web client uses JWT bearer tokens. Integrations use `X-API-Key` with a key created by a tenant administrator. Core resources are `/api/files/`, `/api/folders/`, and `/api/apikeys/`; platform administration lives under `/api/admin/`.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/folders/` | Create folder |
-| GET | `/api/folders/` | List folders |
-| GET | `/api/folders/{id}/` | Folder with children & files |
-| PUT | `/api/folders/{id}/` | Rename folder |
-| DELETE | `/api/folders/{id}/` | Delete folder |
+See the [API and operations reference](docs/REFERENCE.md) for endpoint tables, example payloads, Office document behavior, and deployment considerations.
 
-### API Keys
+## Development
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/apikeys/` | Create API key |
-| GET | `/api/apikeys/` | List API keys |
-| DELETE | `/api/apikeys/{prefix}/` | Revoke API key |
+| Area | Commands |
+|---|---|
+| Frontend | `npm run build`, `npm run lint`, `npm test` from `frontend/` |
+| Backend | `python manage.py test` from `backend/` with the environment active |
 
-### Admin (superuser only)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/admin/tenants/` | List all tenants |
-| GET | `/api/admin/tenants/{id}/` | Tenant details |
-| PATCH | `/api/admin/tenants/{id}/` | Update tenant (quota, status, name) |
-| GET | `/api/admin/tenants/{id}/api-keys/` | List tenant's API keys |
-| GET | `/api/admin/storage-usage/` | Storage metrics |
-| GET | `/api/admin/system-metrics/` | System health |
-| GET | `/api/admin/activity/` | Recent activity log |
-
-## Environment Configuration
-
-The backend uses a `.env` file for configuration. Copy the example and adjust as needed:
-
-```bash
-cd backend
-copy .env.example .env   # Windows
-# cp .env.example .env   # macOS/Linux
-```
-
-Key variables:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DJANGO_SECRET_KEY` | insecure dev key | Django secret key |
-| `DJANGO_DEBUG` | `True` | Debug mode |
-| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated allowed hosts |
-| `FILE_UPLOAD_MAX_SIZE` | `104857600` (100 MB) | Max file upload size in bytes |
-| `OFFICE_PREVIEW_MAX_FILE_SIZE` | `20971520` (20 MB) | Max office file size for document preview |
-| `CORS_ALLOWED_ORIGINS` | localhost dev servers | Comma-separated CORS origins |
-
-See `.env.example` for the full list including database and S3 settings.
-
-## Office Document Viewer/Editor
-
-The platform includes a built-in viewer and editor for Microsoft Office files:
-
-- **Word (.docx)** — paragraphs with rich text formatting, tables, embedded images
-- **Excel (.xlsx)** — multi-sheet support, cell formatting, merged cells, column widths
-- **PowerPoint (.pptx/.pptm)** — slide thumbnails, positioned shapes, rich text runs, embedded images
-
-Features:
-- **Table extraction**: Word tables are extracted and rendered in document order alongside paragraphs
-- **Embedded images**: DOCX images render in document order and PowerPoint pictures render on slide coordinates, with unplaced media kept as a fallback shelf
-- **Theme color resolution**: Office theme-based colors (dk1, accent1, etc.) are resolved to RGB hex values using the document's theme XML, with fallback to default Office theme colors
-- **Preview size limit**: Configurable via `OFFICE_PREVIEW_MAX_FILE_SIZE` in `.env` (default 20 MB) to prevent parsing very large files
-
-## Authentication
-
-### Web App (JWT)
-
-```
-Authorization: Bearer <access_token>
-```
-
-### System-to-System (API Key)
-
-```
-X-API-Key: <api_key>
-```
-
-API keys are scoped to a tenant and support granular permissions: `read`, `write`, `delete`, `admin`.
-
-## End User API Usage (API Key Integrations)
-
-This section is for external systems or scripts that call the platform using an API key.
-
-### 1) Base URL and Headers
-
-- Base URL: `http://localhost:8000/api`
-- Required header for API key flows:
-
-```http
-X-API-Key: <your_api_key>
-Content-Type: application/json
-```
-
-For endpoints that require JWT auth (web/admin flows), use:
-
-```http
-Authorization: Bearer <access_token>
-```
-
-### 2) Endpoint Structure Pattern
-
-- Collections: `GET /resource/`, `POST /resource/`
-- Single item: `GET /resource/{id}/`
-- Action endpoint: `PUT /resource/{id}/rename/`, `GET /resource/{id}/download/`
-- API key revoke: `DELETE /apikeys/{prefix}/`
-
-### 3) API Key Lifecycle (Expected Requests/Responses)
-
-#### Create API key
-
-`POST /api/apikeys/`
-
-Request body:
-
-```json
-{
-       "name": "CI Pipeline",
-       "permissions": ["files:read", "files:write"]
-}
-```
-
-Expected response (`201 Created`):
-
-```json
-{
-       "prefix": "NE3Ca8UN",
-       "name": "CI Pipeline",
-       "permissions": ["files:read", "files:write"],
-       "created": "2026-03-04T10:45:12.100Z",
-       "key": "NE3Ca8UN.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-}
-```
-
-Notes:
-- `key` is shown once at creation time.
-- Store it securely; only `prefix` is returned later.
-
-#### List API keys
-
-`GET /api/apikeys/`
-
-Expected response (`200 OK`):
-
-```json
-{
-       "count": 2,
-       "next": null,
-       "previous": null,
-       "results": [
-              {
-                     "prefix": "NE3Ca8UN",
-                     "name": "CI Pipeline",
-                     "permissions": ["files:read", "files:write"],
-                     "created": "2026-03-04T10:45:12.100Z",
-                     "last_used": null,
-                     "revoked": false
-              }
-       ]
-}
-```
-
-#### Revoke API key
-
-`DELETE /api/apikeys/{prefix}/`
-
-Expected response: `204 No Content`
-
-### 4) Common Resource Response Shapes
-
-#### Files list (`GET /api/files/`)
-
-Expected response:
-
-```json
-{
-       "count": 1,
-       "next": null,
-       "previous": null,
-       "results": [
-              {
-                     "id": "<uuid>",
-                     "original_filename": "report.pdf",
-                     "file_size": 24576,
-                     "file_type": "application/pdf",
-                     "updated_at": "2026-03-04T10:20:00Z"
-              }
-       ]
-}
-```
-
-#### Folder list (`GET /api/folders/`)
-
-Expected response:
-
-```json
-{
-       "count": 1,
-       "next": null,
-       "previous": null,
-       "results": [
-              {
-                     "id": "<uuid>",
-                     "name": "Invoices",
-                     "parent": null,
-                     "updated_at": "2026-03-04T10:10:00Z"
-              }
-       ]
-}
-```
-
-### 5) Typical Error Responses
-
-- `400 Bad Request`: validation errors
-- `401 Unauthorized`: missing/invalid auth token
-- `403 Forbidden`: permission denied for tenant/role
-- `404 Not Found`: resource not found
-
-Validation error shape example:
-
-```json
-{
-       "permissions": ["\"files:execute\" is not a valid choice."]
-}
-```
-
-## Multi-Tenancy
-
-- Each tenant has isolated storage and data
-- Users belong to a single tenant
-- API keys are scoped to their tenant
-- All queries automatically filter by tenant
-- Storage quotas are enforced per-tenant
-
-## Security
-
-- Tenant-scoped data isolation
-- JWT with token rotation and blacklisting
-- Hashed API keys (only shown once on creation)
-- No raw storage paths exposed in API responses
-- Rate limiting (30/min anonymous, 120/min authenticated)
-- Audit logging for file operations
-- CORS restricted to configured origins (configurable via `CORS_ALLOWED_ORIGINS` env var)
-- File upload size limit configurable via `FILE_UPLOAD_MAX_SIZE` env var (default 100 MB)
-- Office preview size limit configurable via `OFFICE_PREVIEW_MAX_FILE_SIZE` env var (default 20 MB)
-
-## Production Considerations
-
-- Switch to PostgreSQL (`dj-database-url`)
-- Configure S3/MinIO for object storage
-- Set `DEBUG = False` and configure `SECRET_KEY` via env vars
-- Configure CORS origins via `CORS_ALLOWED_ORIGINS` env var
-- Enable `SECURE_SSL_REDIRECT`, `SECURE_HSTS_SECONDS`
-- Add Redis for caching + Celery task queue
-- Set up CDN for file delivery
-- Configure structured logging and error tracking
+| Path | Contents |
+|---|---|
+| `frontend/src/features/` | File workspace, Office editor, authentication, and admin screens |
+| `frontend/src/services/` | API clients |
+| `backend/apps/` | Accounts, tenants, files, folders, and API keys |
+| `docs/` | Screenshots and API reference |
 
 ## License
 
-MIT
+[MIT](LICENSE).
